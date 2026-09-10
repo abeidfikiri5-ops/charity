@@ -1,11 +1,13 @@
 {
-  "name": "charity-backend",
+  "name": "must-charity-management-system",
   "version": "1.0.0",
-  "description": "MUST Charity and Expenditure Management System backend",
+  "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "init-db": "node init-db.js"
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -14,8 +16,5 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1"
-  },
-  "engines": {
-    "node": ">=18"
   }
 }
