@@ -2277,7 +2277,6 @@ function exportTableToPDF(
     doc.save(filename);
 }
 
-
 /* =========================================================
    EVENT LISTENERS
 ========================================================= */
@@ -2286,255 +2285,176 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* AUTH TABS */
 
-    const loginTab = $("loginTab");
-    const registerTab = $("registerTab");
+    const loginTab = document.getElementById("loginTab");
+    const registerTab = document.getElementById("registerTab");
 
-    if (loginTab) {
-        loginTab.addEventListener("click", () => {
-            switchAuthTab("login");
-        });
-    }
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
 
-    if (registerTab) {
+
+    if (loginTab && registerTab && loginForm && registerForm) {
+
         registerTab.addEventListener("click", () => {
-            switchAuthTab("register");
+
+            loginTab.classList.remove("active");
+            registerTab.classList.add("active");
+
+            loginForm.classList.add("hidden");
+            registerForm.classList.remove("hidden");
+
         });
+
+
+        loginTab.addEventListener("click", () => {
+
+            registerTab.classList.remove("active");
+            loginTab.classList.add("active");
+
+            registerForm.classList.add("hidden");
+            loginForm.classList.remove("hidden");
+
+        });
+
     }
 
 
     /* AUTH FORMS */
 
-    const loginForm = $("loginForm");
-    const registerForm = $("registerForm");
-
-    if (loginForm) {
-        loginForm.addEventListener(
-            "submit",
-            login
-        );
+    if (loginForm && typeof login === "function") {
+        loginForm.addEventListener("submit", login);
     }
 
-    if (registerForm) {
-        registerForm.addEventListener(
-            "submit",
-            register
-        );
+    if (registerForm && typeof register === "function") {
+        registerForm.addEventListener("submit", register);
     }
 
 
     /* LOGOUT */
 
-    const logoutBtn = $("logoutBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-    if (logoutBtn) {
-        logoutBtn.addEventListener(
-            "click",
-            logout
-        );
+    if (logoutBtn && typeof logout === "function") {
+        logoutBtn.addEventListener("click", logout);
     }
 
 
     /* NAVIGATION */
 
-    document
-        .querySelectorAll(".menu-btn")
-        .forEach(button => {
+    document.querySelectorAll(".menu-btn").forEach(button => {
 
-            button.addEventListener(
-                "click",
-                () => {
+        button.addEventListener("click", () => {
 
-                    const page =
-                        button.dataset.page;
+            const page = button.dataset.page;
 
-                    if (page) {
-                        showPage(page);
-                    }
-
-                }
-            );
+            if (page && typeof showPage === "function") {
+                showPage(page);
+            }
 
         });
+
+    });
 
 
     /* DONATIONS */
 
-    const addDonationBtn =
-        $("addDonationBtn");
+    const addDonationBtn = document.getElementById("addDonationBtn");
+    const cancelDonation = document.getElementById("cancelDonation");
+    const donationForm = document.getElementById("donationForm");
 
-    const cancelDonation =
-        $("cancelDonation");
-
-    const donationForm =
-        $("donationForm");
-
-    if (addDonationBtn) {
-        addDonationBtn.addEventListener(
-            "click",
-            () => {
-                openDonationForm();
-            }
-        );
+    if (addDonationBtn && typeof openDonationForm === "function") {
+        addDonationBtn.addEventListener("click", openDonationForm);
     }
 
-    if (cancelDonation) {
-        cancelDonation.addEventListener(
-            "click",
-            closeDonationForm
-        );
+    if (cancelDonation && typeof closeDonationForm === "function") {
+        cancelDonation.addEventListener("click", closeDonationForm);
     }
 
-    if (donationForm) {
-        donationForm.addEventListener(
-            "submit",
-            saveDonation
-        );
+    if (donationForm && typeof saveDonation === "function") {
+        donationForm.addEventListener("submit", saveDonation);
     }
 
 
     /* EXPENDITURES */
 
-    const addExpenditureBtn =
-        $("addExpenditureBtn");
+    const addExpenditureBtn = document.getElementById("addExpenditureBtn");
+    const cancelExpenditure = document.getElementById("cancelExpenditure");
+    const expenditureForm = document.getElementById("expenditureForm");
 
-    const cancelExpenditure =
-        $("cancelExpenditure");
-
-    const expenditureForm =
-        $("expenditureForm");
-
-    if (addExpenditureBtn) {
-        addExpenditureBtn.addEventListener(
-            "click",
-            () => {
-                openExpenditureForm();
-            }
-        );
+    if (addExpenditureBtn && typeof openExpenditureForm === "function") {
+        addExpenditureBtn.addEventListener("click", openExpenditureForm);
     }
 
-    if (cancelExpenditure) {
-        cancelExpenditure.addEventListener(
-            "click",
-            closeExpenditureForm
-        );
+    if (cancelExpenditure && typeof closeExpenditureForm === "function") {
+        cancelExpenditure.addEventListener("click", closeExpenditureForm);
     }
 
-    if (expenditureForm) {
-        expenditureForm.addEventListener(
-            "submit",
-            saveExpenditure
-        );
+    if (expenditureForm && typeof saveExpenditure === "function") {
+        expenditureForm.addEventListener("submit", saveExpenditure);
     }
 
 
     /* REQUESTS */
 
-    const addRequestBtn =
-        $("addRequestBtn");
+    const addRequestBtn = document.getElementById("addRequestBtn");
+    const cancelRequest = document.getElementById("cancelRequest");
+    const requestForm = document.getElementById("requestForm");
 
-    const cancelRequest =
-        $("cancelRequest");
-
-    const requestForm =
-        $("requestForm");
-
-    if (addRequestBtn) {
-        addRequestBtn.addEventListener(
-            "click",
-            () => {
-                openRequestForm();
-            }
-        );
+    if (addRequestBtn && typeof openRequestForm === "function") {
+        addRequestBtn.addEventListener("click", openRequestForm);
     }
 
-    if (cancelRequest) {
-        cancelRequest.addEventListener(
-            "click",
-            closeRequestForm
-        );
+    if (cancelRequest && typeof closeRequestForm === "function") {
+        cancelRequest.addEventListener("click", closeRequestForm);
     }
 
-    if (requestForm) {
-        requestForm.addEventListener(
-            "submit",
-            saveRequest
-        );
+    if (requestForm && typeof saveRequest === "function") {
+        requestForm.addEventListener("submit", saveRequest);
     }
 
 
     /* CONTACTS */
 
-    const addContactBtn =
-        $("addContactBtn");
+    const addContactBtn = document.getElementById("addContactBtn");
+    const cancelContact = document.getElementById("cancelContact");
+    const contactForm = document.getElementById("contactForm");
 
-    const cancelContact =
-        $("cancelContact");
-
-    const contactForm =
-        $("contactForm");
-
-    if (addContactBtn) {
-        addContactBtn.addEventListener(
-            "click",
-            () => {
-                openContactForm();
-            }
-        );
+    if (addContactBtn && typeof openContactForm === "function") {
+        addContactBtn.addEventListener("click", openContactForm);
     }
 
-    if (cancelContact) {
-        cancelContact.addEventListener(
-            "click",
-            closeContactForm
-        );
+    if (cancelContact && typeof closeContactForm === "function") {
+        cancelContact.addEventListener("click", closeContactForm);
     }
 
-    if (contactForm) {
-        contactForm.addEventListener(
-            "submit",
-            saveContact
-        );
+    if (contactForm && typeof saveContact === "function") {
+        contactForm.addEventListener("submit", saveContact);
     }
 
 
     /* USERS */
 
-    const addUserBtn =
-        $("addUserBtn");
+    const addUserBtn = document.getElementById("addUserBtn");
+    const cancelUser = document.getElementById("cancelUser");
+    const userForm = document.getElementById("userForm");
 
-    const cancelUser =
-        $("cancelUser");
-
-    const userForm =
-        $("userForm");
-
-    if (addUserBtn) {
-        addUserBtn.addEventListener(
-            "click",
-            () => {
-                openUserForm();
-            }
-        );
+    if (addUserBtn && typeof openUserForm === "function") {
+        addUserBtn.addEventListener("click", openUserForm);
     }
 
-    if (cancelUser) {
-        cancelUser.addEventListener(
-            "click",
-            closeUserForm
-        );
+    if (cancelUser && typeof closeUserForm === "function") {
+        cancelUser.addEventListener("click", closeUserForm);
     }
 
-    if (userForm) {
-        userForm.addEventListener(
-            "submit",
-            saveUser
-        );
+    if (userForm && typeof saveUser === "function") {
+        userForm.addEventListener("submit", saveUser);
     }
 
 
     /* START APPLICATION */
 
-    checkSession();
+    if (typeof checkSession === "function") {
+        checkSession();
+    }
 
 });
 
