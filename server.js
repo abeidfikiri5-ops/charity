@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -9,77 +10,58 @@ const pool = require("./db");
 
 const app = express();
 
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET =
+    process.env.JWT_SECRET || "change-this-secret-in-render";
+
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 5000;
-const JWT_SECRET =
-    process.env.JWT_SECRET || "charity-secret-key-change-me";
-
 /* =========================
-   AUTHENTICATION
+   HELPER FUNCTIONS
 ========================= */
 
 function createToken(user) {
     return jwt.sign(
         {
             id: user.id,
-            role: user.role,
-            email: user.email
+            email: user.email,
+            role: user.role
         },
         JWT_SECRET,
         { expiresIn: "7d" }
     );
 }
 
-async function authenticate(req, res, next) {
-    try {
-        const header = req.headers.authorization;
+function authenticate(req, res, next) {
+    const header = req.headers.authorization;
 
-        if (!header || !header.startsWith("Bearer ")) {
-            return res.status(401).json({
-                success: false,
-                message: "Authentication required"
-            });
-        }
-
-        const token = header.split(" ")[1];
-
-        const decoded = jwt.verify(token, JWT_SECRET);
-
-        const result = await pool.query(
-            `SELECT id, full_name, email, role, created_at
-             FROM users
-             WHERE id = $1`,
-            [decoded.id]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(401).json({
-                success: false,
-                message: "User no longer exists"
-            });
-        }
-
-        req.user = result.rows[0];
-
-        next();
-    } catch (error) {
-        console.error(error);
-
+    if (!header || !header.startsWith("Bearer ")) {
         return res.status(401).json({
             success: false,
-            message: "Invalid or expired token"
+            message: "Authentication required."
+        });
+    }
+
+    const token = header.substring(7);
+
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid or expired token."
         });
     }
 }
 
 function allowRoles(...roles) {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        if (!roles.includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
-                message: "You do not have permission to perform this action"
+                message: "You do not have permission to perform this action."
             });
         }
 
@@ -87,377 +69,453 @@ function allowRoles(...roles) {
     };
 }
 
+function asyncRoute(handler) {
+    return (req, res, next) => {
+        Promise.resolve(handler(req, res, next)).catch(next);
+    };
+}
+
 /* =========================
-   BASIC ROUTES
+   HEALTH CHECK
 ========================= */
 
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        message: "MUST Charity & Expenditure server is working!"
-    });
-});
-
-app.get("/api/health", async (req, res) => {
-    try {
-        const result = await pool.query("SELECT NOW()");
+app.get(
+    "/api/health",
+    asyncRoute(async (req, res) => {
+        await pool.query("SELECT 1");
 
         res.json({
             success: true,
-            message: "Server and PostgreSQL are connected!",
-            databaseTime: result.rows[0].now
+            message: "MUST Charity Management System is running.",
+            database: "connected"
         });
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Database connection failed"
-        });
-    }
-});
+    })
+);
 
 /* =========================
-   LOGIN
+   AUTHENTICATION
 ========================= */
 
-app.post("/api/auth/login", async (req, res) => {
-    try {
+/* REGISTER */
+
+app.post(
+    "/api/auth/register",
+    asyncRoute(async (req, res) => {
+        const {
+            full_name,
+            email,
+            password,
+            role
+        } = req.body;
+
+        if (!full_name || !email || !password || !role) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required."
+            });
+        }
+
+        const allowedRoles = [
+            "Donor",
+            "Recipient",
+            "University Supervisor"
+        ];
+
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: "This role cannot register publicly."
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must contain at least 6 characters."
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const existing = await pool.query(
+            "SELECT id FROM users WHERE email = $1",
+            [normalizedEmail]
+        );
+
+        if (existing.rows.length > 0) {
+            return res.status(409).json({
+                success: false,
+                message: "Email already exists."
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const result = await pool.query(
+            `INSERT INTO users
+            (full_name, email, password_hash, role)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, full_name, email, role, created_at`,
+            [
+                full_name.trim(),
+                normalizedEmail,
+                passwordHash,
+                role
+            ]
+        );
+
+        const user = result.rows[0];
+
+        const token = createToken(user);
+
+        res.status(201).json({
+            success: true,
+            message: "Registration successful.",
+            token,
+            user
+        });
+    })
+);
+
+/* LOGIN */
+
+app.post(
+    "/api/auth/login",
+    asyncRoute(async (req, res) => {
         const { email, password } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
-                message: "Email and password are required"
+                message: "Email and password are required."
             });
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
+
         const result = await pool.query(
-            "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
-            [email.trim()]
+            `SELECT id, full_name, email, password_hash, role, created_at
+             FROM users
+             WHERE email = $1`,
+            [normalizedEmail]
         );
 
         if (result.rows.length === 0) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password"
+                message: "Invalid email or password."
             });
         }
 
         const user = result.rows[0];
 
-        const passwordMatch = await bcrypt.compare(
+        const validPassword = await bcrypt.compare(
             password,
             user.password_hash
         );
 
-        if (!passwordMatch) {
+        if (!validPassword) {
             return res.status(401).json({
                 success: false,
-                message: "Invalid email or password"
+                message: "Invalid email or password."
             });
         }
+
+        delete user.password_hash;
 
         const token = createToken(user);
 
         res.json({
             success: true,
-            message: "Login successful",
+            message: "Login successful.",
             token,
-            user: {
-                id: user.id,
-                full_name: user.full_name,
-                email: user.email,
-                role: user.role
-            }
+            user
         });
-    } catch (error) {
-        console.error(error);
+    })
+);
 
-        res.status(500).json({
-            success: false,
-            message: "Login failed"
+/* CURRENT USER */
+
+app.get(
+    "/api/auth/me",
+    authenticate,
+    asyncRoute(async (req, res) => {
+        const result = await pool.query(
+            `SELECT id, full_name, email, role, created_at
+             FROM users
+             WHERE id = $1`,
+            [req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            user: result.rows[0]
         });
-    }
-});
-
-/* =========================
-   CURRENT USER
-========================= */
-
-app.get("/api/auth/me", authenticate, (req, res) => {
-    res.json({
-        success: true,
-        user: req.user
-    });
-});
+    })
+);
 
 /* =========================
    USERS
+   ADMIN ONLY
 ========================= */
 
 app.get(
     "/api/users",
     authenticate,
     allowRoles("Admin"),
-    async (req, res) => {
-        try {
-            const result = await pool.query(
-                `SELECT id, full_name, email, role, created_at
-                 FROM users
-                 ORDER BY id DESC`
-            );
+    asyncRoute(async (req, res) => {
+        const result = await pool.query(
+            `SELECT id, full_name, email, role, created_at
+             FROM users
+             ORDER BY id DESC`
+        );
 
-            res.json({
-                success: true,
-                users: result.rows
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
-                success: false,
-                message: "Failed to get users"
-            });
-        }
-    }
+        res.json({
+            success: true,
+            users: result.rows
+        });
+    })
 );
 
 app.post(
     "/api/users",
     authenticate,
     allowRoles("Admin"),
-    async (req, res) => {
-        try {
-            const {
-                full_name,
-                email,
-                password,
-                role
-            } = req.body;
+    asyncRoute(async (req, res) => {
+        const {
+            full_name,
+            email,
+            password,
+            role
+        } = req.body;
 
-            const allowedRoles = [
-                "Admin",
-                "Accountant",
-                "University Supervisor",
-                "Donor",
-                "Recipient"
-            ];
-
-            if (!full_name || !email || !password || !role) {
-                return res.status(400).json({
-                    success: false,
-                    message: "All fields are required"
-                });
-            }
-
-            if (!allowedRoles.includes(role)) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid role"
-                });
-            }
-
-            const existing = await pool.query(
-                "SELECT id FROM users WHERE LOWER(email) = LOWER($1)",
-                [email.trim()]
-            );
-
-            if (existing.rows.length > 0) {
-                return res.status(409).json({
-                    success: false,
-                    message: "Email already exists"
-                });
-            }
-
-            const passwordHash = await bcrypt.hash(password, 10);
-
-            const result = await pool.query(
-                `INSERT INTO users
-                 (full_name, email, password_hash, role)
-                 VALUES ($1, $2, $3, $4)
-                 RETURNING id, full_name, email, role, created_at`,
-                [
-                    full_name.trim(),
-                    email.trim().toLowerCase(),
-                    passwordHash,
-                    role
-                ]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: "User created successfully",
-                user: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!full_name || !email || !password || !role) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to create user"
+                message: "All fields are required."
             });
         }
-    }
+
+        const allowedRoles = [
+            "Admin",
+            "Accountant",
+            "University Supervisor",
+            "Donor",
+            "Recipient"
+        ];
+
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user role."
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must contain at least 6 characters."
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        const result = await pool.query(
+            `INSERT INTO users
+            (full_name, email, password_hash, role)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, full_name, email, role, created_at`,
+            [
+                full_name.trim(),
+                normalizedEmail,
+                passwordHash,
+                role
+            ]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "User created successfully.",
+            user: result.rows[0]
+        });
+    })
 );
 
 app.put(
     "/api/users/:id",
     authenticate,
     allowRoles("Admin"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const userId = Number(req.params.id);
 
-            const {
-                full_name,
-                email,
-                password,
-                role
-            } = req.body;
-
-            const allowedRoles = [
-                "Admin",
-                "Accountant",
-                "University Supervisor",
-                "Donor",
-                "Recipient"
-            ];
-
-            if (!full_name || !email || !role) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Name, email and role are required"
-                });
-            }
-
-            if (!allowedRoles.includes(role)) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid role"
-                });
-            }
-
-            let result;
-
-            if (password) {
-                const passwordHash = await bcrypt.hash(password, 10);
-
-                result = await pool.query(
-                    `UPDATE users
-                     SET full_name = $1,
-                         email = $2,
-                         password_hash = $3,
-                         role = $4
-                     WHERE id = $5
-                     RETURNING id, full_name, email, role, created_at`,
-                    [
-                        full_name.trim(),
-                        email.trim().toLowerCase(),
-                        passwordHash,
-                        role,
-                        id
-                    ]
-                );
-            } else {
-                result = await pool.query(
-                    `UPDATE users
-                     SET full_name = $1,
-                         email = $2,
-                         role = $3
-                     WHERE id = $4
-                     RETURNING id, full_name, email, role, created_at`,
-                    [
-                        full_name.trim(),
-                        email.trim().toLowerCase(),
-                        role,
-                        id
-                    ]
-                );
-            }
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "User not found"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "User updated successfully",
-                user: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!Number.isInteger(userId)) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to update user"
+                message: "Invalid user ID."
             });
         }
-    }
+
+        const {
+            full_name,
+            email,
+            password,
+            role
+        } = req.body;
+
+        if (!full_name || !email || !role) {
+            return res.status(400).json({
+                success: false,
+                message: "Name, email and role are required."
+            });
+        }
+
+        const allowedRoles = [
+            "Admin",
+            "Accountant",
+            "University Supervisor",
+            "Donor",
+            "Recipient"
+        ];
+
+        if (!allowedRoles.includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user role."
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        let result;
+
+        if (password && password.length > 0) {
+            if (password.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Password must contain at least 6 characters."
+                });
+            }
+
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            result = await pool.query(
+                `UPDATE users
+                 SET full_name = $1,
+                     email = $2,
+                     password_hash = $3,
+                     role = $4
+                 WHERE id = $5
+                 RETURNING id, full_name, email, role, created_at`,
+                [
+                    full_name.trim(),
+                    normalizedEmail,
+                    passwordHash,
+                    role,
+                    userId
+                ]
+            );
+        } else {
+            result = await pool.query(
+                `UPDATE users
+                 SET full_name = $1,
+                     email = $2,
+                     role = $3
+                 WHERE id = $4
+                 RETURNING id, full_name, email, role, created_at`,
+                [
+                    full_name.trim(),
+                    normalizedEmail,
+                    role,
+                    userId
+                ]
+            );
+        }
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "User updated successfully.",
+            user: result.rows[0]
+        });
+    })
 );
 
 app.delete(
     "/api/users/:id",
     authenticate,
     allowRoles("Admin"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const userId = Number(req.params.id);
 
-            if (id === req.user.id) {
-                return res.status(400).json({
-                    success: false,
-                    message: "You cannot delete your own account"
-                });
-            }
-
-            const result = await pool.query(
-                "DELETE FROM users WHERE id = $1 RETURNING id",
-                [id]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "User not found"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "User deleted successfully"
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!Number.isInteger(userId)) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to delete user"
+                message: "Invalid user ID."
             });
         }
-    }
+
+        if (userId === req.user.id) {
+            return res.status(400).json({
+                success: false,
+                message: "You cannot delete your own account."
+            });
+        }
+
+        const result = await pool.query(
+            "DELETE FROM users WHERE id = $1 RETURNING id",
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "User deleted successfully."
+        });
+    })
 );
 
 /* =========================
    DONATIONS
 ========================= */
 
-app.get("/api/donations", authenticate, async (req, res) => {
-    try {
+app.get(
+    "/api/donations",
+    authenticate,
+    asyncRoute(async (req, res) => {
         let result;
 
         if (req.user.role === "Donor") {
             result = await pool.query(
-                `SELECT d.id,
-                        d.donor_id,
-                        u.full_name AS donor_name,
-                        d.amount,
-                        d.description,
-                        d.donation_date,
-                        d.created_at
+                `SELECT
+                    d.id,
+                    d.donor_id,
+                    u.full_name AS donor_name,
+                    u.email AS donor_email,
+                    d.amount,
+                    d.description,
+                    d.donation_date,
+                    d.created_at
                  FROM donations d
                  JOIN users u ON u.id = d.donor_id
                  WHERE d.donor_id = $1
@@ -466,13 +524,15 @@ app.get("/api/donations", authenticate, async (req, res) => {
             );
         } else {
             result = await pool.query(
-                `SELECT d.id,
-                        d.donor_id,
-                        u.full_name AS donor_name,
-                        d.amount,
-                        d.description,
-                        d.donation_date,
-                        d.created_at
+                `SELECT
+                    d.id,
+                    d.donor_id,
+                    u.full_name AS donor_name,
+                    u.email AS donor_email,
+                    d.amount,
+                    d.description,
+                    d.donation_date,
+                    d.created_at
                  FROM donations d
                  JOIN users u ON u.id = d.donor_id
                  ORDER BY d.id DESC`
@@ -483,215 +543,215 @@ app.get("/api/donations", authenticate, async (req, res) => {
             success: true,
             donations: result.rows
         });
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to get donations"
-        });
-    }
-});
+    })
+);
 
 app.post(
     "/api/donations",
     authenticate,
     allowRoles("Admin", "Donor"),
-    async (req, res) => {
-        try {
-            const {
-                donor_id,
-                amount,
-                description,
-                donation_date
-            } = req.body;
+    asyncRoute(async (req, res) => {
+        const {
+            donor_id,
+            amount,
+            description,
+            donation_date
+        } = req.body;
 
-            const donorId =
-                req.user.role === "Donor"
-                    ? req.user.id
-                    : Number(donor_id);
+        const numericAmount = Number(amount);
 
-            if (!donorId || !amount) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Donor and amount are required"
-                });
-            }
-
-            const result = await pool.query(
-                `INSERT INTO donations
-                 (donor_id, amount, description, donation_date)
-                 VALUES ($1, $2, $3, COALESCE($4::date, CURRENT_DATE))
-                 RETURNING *`,
-                [
-                    donorId,
-                    Number(amount),
-                    description || "",
-                    donation_date || null
-                ]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: "Donation created successfully",
-                donation: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to create donation"
+                message: "Donation amount must be greater than zero."
             });
         }
-    }
+
+        let donorId;
+
+        if (req.user.role === "Donor") {
+            donorId = req.user.id;
+        } else {
+            donorId = Number(donor_id);
+        }
+
+        if (!Number.isInteger(donorId)) {
+            return res.status(400).json({
+                success: false,
+                message: "A valid donor is required."
+            });
+        }
+
+        const donorCheck = await pool.query(
+            `SELECT id FROM users
+             WHERE id = $1 AND role = 'Donor'`,
+            [donorId]
+        );
+
+        if (donorCheck.rows.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Selected donor does not exist."
+            });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO donations
+            (donor_id, amount, description, donation_date)
+            VALUES ($1, $2, $3, COALESCE($4, CURRENT_DATE))
+            RETURNING *`,
+            [
+                donorId,
+                numericAmount,
+                description || "",
+                donation_date || null
+            ]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "Donation created successfully.",
+            donation: result.rows[0]
+        });
+    })
 );
 
 app.put(
     "/api/donations/:id",
     authenticate,
     allowRoles("Admin", "Donor"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const donationId = Number(req.params.id);
 
-            const {
-                amount,
-                description,
-                donation_date
-            } = req.body;
+        const {
+            amount,
+            description,
+            donation_date
+        } = req.body;
 
-            if (!amount) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Amount is required"
-                });
-            }
+        const numericAmount = Number(amount);
 
-            let result;
-
-            if (req.user.role === "Donor") {
-                result = await pool.query(
-                    `UPDATE donations
-                     SET amount = $1,
-                         description = $2,
-                         donation_date =
-                             COALESCE($3::date, donation_date)
-                     WHERE id = $4
-                       AND donor_id = $5
-                     RETURNING *`,
-                    [
-                        Number(amount),
-                        description || "",
-                        donation_date || null,
-                        id,
-                        req.user.id
-                    ]
-                );
-            } else {
-                result = await pool.query(
-                    `UPDATE donations
-                     SET amount = $1,
-                         description = $2,
-                         donation_date =
-                             COALESCE($3::date, donation_date)
-                     WHERE id = $4
-                     RETURNING *`,
-                    [
-                        Number(amount),
-                        description || "",
-                        donation_date || null,
-                        id
-                    ]
-                );
-            }
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Donation not found or not allowed"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Donation updated successfully",
-                donation: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!Number.isInteger(donationId)) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to update donation"
+                message: "Invalid donation ID."
             });
         }
-    }
+
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Donation amount must be greater than zero."
+            });
+        }
+
+        let result;
+
+        if (req.user.role === "Donor") {
+            result = await pool.query(
+                `UPDATE donations
+                 SET amount = $1,
+                     description = $2,
+                     donation_date = COALESCE($3, donation_date)
+                 WHERE id = $4
+                   AND donor_id = $5
+                 RETURNING *`,
+                [
+                    numericAmount,
+                    description || "",
+                    donation_date || null,
+                    donationId,
+                    req.user.id
+                ]
+            );
+        } else {
+            result = await pool.query(
+                `UPDATE donations
+                 SET amount = $1,
+                     description = $2,
+                     donation_date = COALESCE($3, donation_date)
+                 WHERE id = $4
+                 RETURNING *`,
+                [
+                    numericAmount,
+                    description || "",
+                    donation_date || null,
+                    donationId
+                ]
+            );
+        }
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Donation not found or you do not have permission."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Donation updated successfully.",
+            donation: result.rows[0]
+        });
+    })
 );
 
 app.delete(
     "/api/donations/:id",
     authenticate,
     allowRoles("Admin", "Donor"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const donationId = Number(req.params.id);
 
-            let result;
+        let result;
 
-            if (req.user.role === "Donor") {
-                result = await pool.query(
-                    `DELETE FROM donations
-                     WHERE id = $1
-                       AND donor_id = $2
-                     RETURNING id`,
-                    [id, req.user.id]
-                );
-            } else {
-                result = await pool.query(
-                    `DELETE FROM donations
-                     WHERE id = $1
-                     RETURNING id`,
-                    [id]
-                );
-            }
+        if (req.user.role === "Donor") {
+            result = await pool.query(
+                `DELETE FROM donations
+                 WHERE id = $1 AND donor_id = $2
+                 RETURNING id`,
+                [donationId, req.user.id]
+            );
+        } else {
+            result = await pool.query(
+                `DELETE FROM donations
+                 WHERE id = $1
+                 RETURNING id`,
+                [donationId]
+            );
+        }
 
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Donation not found or not allowed"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Donation deleted successfully"
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (result.rows.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message: "Failed to delete donation"
+                message: "Donation not found or you do not have permission."
             });
         }
-    }
+
+        res.json({
+            success: true,
+            message: "Donation deleted successfully."
+        });
+    })
 );
 
 /* =========================
    EXPENDITURES
 ========================= */
 
-app.get("/api/expenditures", authenticate, async (req, res) => {
-    try {
+app.get(
+    "/api/expenditures",
+    authenticate,
+    asyncRoute(async (req, res) => {
         const result = await pool.query(
-            `SELECT e.id,
-                    e.amount,
-                    e.description,
-                    e.expenditure_date,
-                    e.created_by,
-                    u.full_name AS created_by_name,
-                    e.created_at
+            `SELECT
+                e.id,
+                e.amount,
+                e.description,
+                e.expenditure_date,
+                e.created_by,
+                u.full_name AS created_by_name,
+                e.created_at
              FROM expenditures e
              JOIN users u ON u.id = e.created_by
              ORDER BY e.id DESC`
@@ -701,212 +761,199 @@ app.get("/api/expenditures", authenticate, async (req, res) => {
             success: true,
             expenditures: result.rows
         });
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to get expenditures"
-        });
-    }
-});
+    })
+);
 
 app.post(
     "/api/expenditures",
     authenticate,
     allowRoles("Admin", "Accountant"),
-    async (req, res) => {
-        try {
-            const {
-                amount,
-                description,
-                expenditure_date
-            } = req.body;
+    asyncRoute(async (req, res) => {
+        const {
+            amount,
+            description,
+            expenditure_date
+        } = req.body;
 
-            if (!amount || !description) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Amount and description are required"
-                });
-            }
+        const numericAmount = Number(amount);
 
-            const result = await pool.query(
-                `INSERT INTO expenditures
-                 (amount, description, expenditure_date, created_by)
-                 VALUES (
-                     $1,
-                     $2,
-                     COALESCE($3::date, CURRENT_DATE),
-                     $4
-                 )
-                 RETURNING *`,
-                [
-                    Number(amount),
-                    description,
-                    expenditure_date || null,
-                    req.user.id
-                ]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: "Expenditure created successfully",
-                expenditure: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to create expenditure"
+                message: "Expenditure amount must be greater than zero."
             });
         }
-    }
+
+        if (!description || !description.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Expenditure description is required."
+            });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO expenditures
+            (amount, description, expenditure_date, created_by)
+            VALUES ($1, $2, COALESCE($3, CURRENT_DATE), $4)
+            RETURNING *`,
+            [
+                numericAmount,
+                description.trim(),
+                expenditure_date || null,
+                req.user.id
+            ]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "Expenditure created successfully.",
+            expenditure: result.rows[0]
+        });
+    })
 );
 
 app.put(
     "/api/expenditures/:id",
     authenticate,
     allowRoles("Admin", "Accountant"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const expenditureId = Number(req.params.id);
 
-            const {
-                amount,
-                description,
-                expenditure_date
-            } = req.body;
+        const {
+            amount,
+            description,
+            expenditure_date
+        } = req.body;
 
-            if (!amount || !description) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Amount and description are required"
-                });
-            }
+        const numericAmount = Number(amount);
 
-            const result = await pool.query(
-                `UPDATE expenditures
-                 SET amount = $1,
-                     description = $2,
-                     expenditure_date =
-                         COALESCE($3::date, expenditure_date)
-                 WHERE id = $4
-                 RETURNING *`,
-                [
-                    Number(amount),
-                    description,
-                    expenditure_date || null,
-                    id
-                ]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Expenditure not found"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Expenditure updated successfully",
-                expenditure: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!Number.isInteger(expenditureId)) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to update expenditure"
+                message: "Invalid expenditure ID."
             });
         }
-    }
+
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Expenditure amount must be greater than zero."
+            });
+        }
+
+        if (!description || !description.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Description is required."
+            });
+        }
+
+        const result = await pool.query(
+            `UPDATE expenditures
+             SET amount = $1,
+                 description = $2,
+                 expenditure_date = COALESCE($3, expenditure_date)
+             WHERE id = $4
+             RETURNING *`,
+            [
+                numericAmount,
+                description.trim(),
+                expenditure_date || null,
+                expenditureId
+            ]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Expenditure not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Expenditure updated successfully.",
+            expenditure: result.rows[0]
+        });
+    })
 );
 
 app.delete(
     "/api/expenditures/:id",
     authenticate,
     allowRoles("Admin", "Accountant"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const expenditureId = Number(req.params.id);
 
-            const result = await pool.query(
-                "DELETE FROM expenditures WHERE id = $1 RETURNING id",
-                [id]
-            );
+        const result = await pool.query(
+            `DELETE FROM expenditures
+             WHERE id = $1
+             RETURNING id`,
+            [expenditureId]
+        );
 
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Expenditure not found"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Expenditure deleted successfully"
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (result.rows.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message: "Failed to delete expenditure"
+                message: "Expenditure not found."
             });
         }
-    }
+
+        res.json({
+            success: true,
+            message: "Expenditure deleted successfully."
+        });
+    })
 );
 
 /* =========================
    RECIPIENT REQUESTS
 ========================= */
 
-app.get("/api/requests", authenticate, async (req, res) => {
-    try {
+app.get(
+    "/api/requests",
+    authenticate,
+    asyncRoute(async (req, res) => {
         let result;
 
         if (req.user.role === "Recipient") {
             result = await pool.query(
-                `SELECT r.id,
-                        r.recipient_id,
-                        u.full_name AS recipient_name,
-                        r.title,
-                        r.description,
-                        r.amount_requested,
-                        r.status,
-                        r.reviewed_by,
-                        reviewer.full_name AS reviewer_name,
-                        r.created_at,
-                        r.updated_at
+                `SELECT
+                    r.id,
+                    r.recipient_id,
+                    u.full_name AS recipient_name,
+                    r.title,
+                    r.description,
+                    r.amount_requested,
+                    r.status,
+                    r.reviewed_by,
+                    rv.full_name AS reviewer_name,
+                    r.reviewed_at,
+                    r.created_at
                  FROM recipient_requests r
-                 JOIN users u
-                   ON u.id = r.recipient_id
-                 LEFT JOIN users reviewer
-                   ON reviewer.id = r.reviewed_by
+                 JOIN users u ON u.id = r.recipient_id
+                 LEFT JOIN users rv ON rv.id = r.reviewed_by
                  WHERE r.recipient_id = $1
                  ORDER BY r.id DESC`,
                 [req.user.id]
             );
         } else {
             result = await pool.query(
-                `SELECT r.id,
-                        r.recipient_id,
-                        u.full_name AS recipient_name,
-                        r.title,
-                        r.description,
-                        r.amount_requested,
-                        r.status,
-                        r.reviewed_by,
-                        reviewer.full_name AS reviewer_name,
-                        r.created_at,
-                        r.updated_at
+                `SELECT
+                    r.id,
+                    r.recipient_id,
+                    u.full_name AS recipient_name,
+                    r.title,
+                    r.description,
+                    r.amount_requested,
+                    r.status,
+                    r.reviewed_by,
+                    rv.full_name AS reviewer_name,
+                    r.reviewed_at,
+                    r.created_at
                  FROM recipient_requests r
-                 JOIN users u
-                   ON u.id = r.recipient_id
-                 LEFT JOIN users reviewer
-                   ON reviewer.id = r.reviewed_by
+                 JOIN users u ON u.id = r.recipient_id
+                 LEFT JOIN users rv ON rv.id = r.reviewed_by
                  ORDER BY r.id DESC`
             );
         }
@@ -915,288 +962,234 @@ app.get("/api/requests", authenticate, async (req, res) => {
             success: true,
             requests: result.rows
         });
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to get requests"
-        });
-    }
-});
+    })
+);
 
 app.post(
     "/api/requests",
     authenticate,
     allowRoles("Recipient"),
-    async (req, res) => {
-        try {
-            const {
-                title,
-                description,
-                amount_requested
-            } = req.body;
+    asyncRoute(async (req, res) => {
+        const {
+            title,
+            description,
+            amount_requested
+        } = req.body;
 
-            if (!title || !description || !amount_requested) {
-                return res.status(400).json({
-                    success: false,
-                    message:
-                        "Title, description and amount are required"
-                });
-            }
+        const numericAmount = Number(amount_requested);
 
-            const result = await pool.query(
-                `INSERT INTO recipient_requests
-                 (recipient_id, title, description, amount_requested)
-                 VALUES ($1, $2, $3, $4)
-                 RETURNING *`,
-                [
-                    req.user.id,
-                    title,
-                    description,
-                    Number(amount_requested)
-                ]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: "Request created successfully",
-                request: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!title || !title.trim()) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to create request"
+                message: "Request title is required."
             });
         }
-    }
+
+        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Requested amount must be greater than zero."
+            });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO recipient_requests
+            (recipient_id, title, description, amount_requested)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *`,
+            [
+                req.user.id,
+                title.trim(),
+                description || "",
+                numericAmount
+            ]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "Request submitted successfully.",
+            request: result.rows[0]
+        });
+    })
 );
 
 app.put(
     "/api/requests/:id",
     authenticate,
     allowRoles("Recipient"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    asyncRoute(async (req, res) => {
+        const requestId = Number(req.params.id);
 
-            const {
+        const {
+            title,
+            description,
+            amount_requested
+        } = req.body;
+
+        const numericAmount = Number(amount_requested);
+
+        const result = await pool.query(
+            `UPDATE recipient_requests
+             SET title = $1,
+                 description = $2,
+                 amount_requested = $3
+             WHERE id = $4
+               AND recipient_id = $5
+               AND status = 'Pending'
+             RETURNING *`,
+            [
                 title,
-                description,
-                amount_requested
-            } = req.body;
+                description || "",
+                numericAmount,
+                requestId,
+                req.user.id
+            ]
+        );
 
-            const result = await pool.query(
-                `UPDATE recipient_requests
-                 SET title = $1,
-                     description = $2,
-                     amount_requested = $3,
-                     updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $4
-                   AND recipient_id = $5
-                   AND status = 'Pending'
-                 RETURNING *`,
-                [
-                    title,
-                    description,
-                    Number(amount_requested),
-                    id,
-                    req.user.id
-                ]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message:
-                        "Request not found or cannot be updated"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Request updated successfully",
-                request: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (result.rows.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message: "Failed to update request"
+                message: "Request not found, already reviewed, or not yours."
             });
         }
-    }
+
+        res.json({
+            success: true,
+            message: "Request updated successfully.",
+            request: result.rows[0]
+        });
+    })
 );
 
 app.delete(
     "/api/requests/:id",
     authenticate,
-    allowRoles("Recipient", "Admin"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    allowRoles("Recipient"),
+    asyncRoute(async (req, res) => {
+        const requestId = Number(req.params.id);
 
-            let result;
+        const result = await pool.query(
+            `DELETE FROM recipient_requests
+             WHERE id = $1
+               AND recipient_id = $2
+               AND status = 'Pending'
+             RETURNING id`,
+            [
+                requestId,
+                req.user.id
+            ]
+        );
 
-            if (req.user.role === "Recipient") {
-                result = await pool.query(
-                    `DELETE FROM recipient_requests
-                     WHERE id = $1
-                       AND recipient_id = $2
-                       AND status = 'Pending'
-                     RETURNING id`,
-                    [id, req.user.id]
-                );
-            } else {
-                result = await pool.query(
-                    `DELETE FROM recipient_requests
-                     WHERE id = $1
-                     RETURNING id`,
-                    [id]
-                );
-            }
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message:
-                        "Request not found or cannot be deleted"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Request deleted successfully"
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (result.rows.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message: "Failed to delete request"
+                message: "Request cannot be deleted."
             });
         }
-    }
+
+        res.json({
+            success: true,
+            message: "Request deleted successfully."
+        });
+    })
 );
 
-/* =========================
-   APPROVE / REJECT REQUEST
-========================= */
+/* APPROVE / REJECT REQUEST */
 
-app.put(
+app.patch(
     "/api/requests/:id/status",
     authenticate,
-    allowRoles("Admin"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    allowRoles("Admin", "University Supervisor"),
+    asyncRoute(async (req, res) => {
+        const requestId = Number(req.params.id);
 
-            const { status } = req.body;
+        const { status } = req.body;
 
-            const allowedStatuses = [
-                "Approved",
-                "Rejected"
-            ];
-
-            if (!allowedStatuses.includes(status)) {
-                return res.status(400).json({
-                    success: false,
-                    message:
-                        "Status must be Approved or Rejected"
-                });
-            }
-
-            const result = await pool.query(
-                `UPDATE recipient_requests
-                 SET status = $1,
-                     reviewed_by = $2,
-                     updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $3
-                 RETURNING *`,
-                [
-                    status,
-                    req.user.id,
-                    id
-                ]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Request not found"
-                });
-            }
-
-            res.json({
-                success: true,
-                message:
-                    `Request ${status.toLowerCase()} successfully`,
-                request: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!["Approved", "Rejected"].includes(status)) {
+            return res.status(400).json({
                 success: false,
-                message:
-                    "Failed to update request status"
+                message: "Status must be Approved or Rejected."
             });
         }
-    }
+
+        const result = await pool.query(
+            `UPDATE recipient_requests
+             SET status = $1,
+                 reviewed_by = $2,
+                 reviewed_at = CURRENT_TIMESTAMP
+             WHERE id = $3
+             RETURNING *`,
+            [
+                status,
+                req.user.id,
+                requestId
+            ]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Request not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Request ${status.toLowerCase()} successfully.`,
+            request: result.rows[0]
+        });
+    })
 );
 
 /* =========================
    CONTACTS
 ========================= */
 
-app.get("/api/contacts", authenticate, async (req, res) => {
-    try {
+app.get(
+    "/api/contacts",
+    authenticate,
+    asyncRoute(async (req, res) => {
         let result;
 
-        if (
-            req.user.role === "Admin" ||
-            req.user.role === "Accountant"
-        ) {
+        if (req.user.role === "Admin" ||
+            req.user.role === "Accountant" ||
+            req.user.role === "University Supervisor") {
+
             result = await pool.query(
-                `SELECT c.id,
-                        c.sender_id,
-                        u.full_name AS sender_name,
-                        u.email AS sender_email,
-                        c.subject,
-                        c.message,
-                        c.reply,
-                        c.replied_by,
-                        r.full_name AS replied_by_name,
-                        c.created_at,
-                        c.replied_at
+                `SELECT
+                    c.id,
+                    c.sender_id,
+                    u.full_name AS sender_name,
+                    u.email AS sender_email,
+                    c.subject,
+                    c.message,
+                    c.reply,
+                    c.replied_by,
+                    r.full_name AS replied_by_name,
+                    c.created_at,
+                    c.replied_at
                  FROM contacts c
-                 JOIN users u
-                   ON u.id = c.sender_id
-                 LEFT JOIN users r
-                   ON r.id = c.replied_by
+                 JOIN users u ON u.id = c.sender_id
+                 LEFT JOIN users r ON r.id = c.replied_by
                  ORDER BY c.id DESC`
             );
         } else {
             result = await pool.query(
-                `SELECT c.id,
-                        c.sender_id,
-                        u.full_name AS sender_name,
-                        u.email AS sender_email,
-                        c.subject,
-                        c.message,
-                        c.reply,
-                        c.replied_by,
-                        r.full_name AS replied_by_name,
-                        c.created_at,
-                        c.replied_at
+                `SELECT
+                    c.id,
+                    c.sender_id,
+                    u.full_name AS sender_name,
+                    u.email AS sender_email,
+                    c.subject,
+                    c.message,
+                    c.reply,
+                    c.replied_by,
+                    r.full_name AS replied_by_name,
+                    c.created_at,
+                    c.replied_at
                  FROM contacts c
-                 JOIN users u
-                   ON u.id = c.sender_id
-                 LEFT JOIN users r
-                   ON r.id = c.replied_by
+                 JOIN users u ON u.id = c.sender_id
+                 LEFT JOIN users r ON r.id = c.replied_by
                  WHERE c.sender_id = $1
                  ORDER BY c.id DESC`,
                 [req.user.id]
@@ -1207,115 +1200,92 @@ app.get("/api/contacts", authenticate, async (req, res) => {
             success: true,
             contacts: result.rows
         });
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Failed to get contacts"
-        });
-    }
-});
+    })
+);
 
 app.post(
     "/api/contacts",
     authenticate,
-    async (req, res) => {
-        try {
-            const {
-                subject,
-                message
-            } = req.body;
+    asyncRoute(async (req, res) => {
+        const {
+            subject,
+            message
+        } = req.body;
 
-            if (!subject || !message) {
-                return res.status(400).json({
-                    success: false,
-                    message:
-                        "Subject and message are required"
-                });
-            }
-
-            const result = await pool.query(
-                `INSERT INTO contacts
-                 (sender_id, subject, message)
-                 VALUES ($1, $2, $3)
-                 RETURNING *`,
-                [
-                    req.user.id,
-                    subject,
-                    message
-                ]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: "Message sent successfully",
-                contact: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!subject || !message) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to send message"
+                message: "Subject and message are required."
             });
         }
-    }
+
+        const result = await pool.query(
+            `INSERT INTO contacts
+            (sender_id, subject, message)
+            VALUES ($1, $2, $3)
+            RETURNING *`,
+            [
+                req.user.id,
+                subject.trim(),
+                message.trim()
+            ]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "Message sent successfully.",
+            contact: result.rows[0]
+        });
+    })
 );
 
-app.put(
+app.patch(
     "/api/contacts/:id/reply",
     authenticate,
-    allowRoles("Admin", "Accountant"),
-    async (req, res) => {
-        try {
-            const id = Number(req.params.id);
+    allowRoles(
+        "Admin",
+        "Accountant",
+        "University Supervisor"
+    ),
+    asyncRoute(async (req, res) => {
+        const contactId = Number(req.params.id);
 
-            const { reply } = req.body;
+        const { reply } = req.body;
 
-            if (!reply) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Reply is required"
-                });
-            }
-
-            const result = await pool.query(
-                `UPDATE contacts
-                 SET reply = $1,
-                     replied_by = $2,
-                     replied_at = CURRENT_TIMESTAMP
-                 WHERE id = $3
-                 RETURNING *`,
-                [
-                    reply,
-                    req.user.id,
-                    id
-                ]
-            );
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message:
-                        "Contact message not found"
-                });
-            }
-
-            res.json({
-                success: true,
-                message: "Reply sent successfully",
-                contact: result.rows[0]
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
+        if (!reply || !reply.trim()) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to reply to contact"
+                message: "Reply is required."
             });
         }
-    }
+
+        const result = await pool.query(
+            `UPDATE contacts
+             SET reply = $1,
+                 replied_by = $2,
+                 replied_at = CURRENT_TIMESTAMP
+             WHERE id = $3
+             RETURNING *`,
+            [
+                reply.trim(),
+                req.user.id,
+                contactId
+            ]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Message not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Reply sent successfully.",
+            contact: result.rows[0]
+        });
+    })
 );
 
 /* =========================
@@ -1325,94 +1295,56 @@ app.put(
 app.get(
     "/api/dashboard",
     authenticate,
-    async (req, res) => {
-        try {
-            const users = await pool.query(
-                "SELECT COUNT(*)::int AS total FROM users"
-            );
+    asyncRoute(async (req, res) => {
+        const donationResult = await pool.query(
+            `SELECT COALESCE(SUM(amount), 0) AS total
+             FROM donations`
+        );
 
-            const donations = await pool.query(
-                "SELECT COALESCE(SUM(amount), 0) AS total FROM donations"
-            );
+        const expenditureResult = await pool.query(
+            `SELECT COALESCE(SUM(amount), 0) AS total
+             FROM expenditures`
+        );
 
-            const expenditures = await pool.query(
-                "SELECT COALESCE(SUM(amount), 0) AS total FROM expenditures"
-            );
+        const pendingResult = await pool.query(
+            `SELECT COUNT(*) AS total
+             FROM recipient_requests
+             WHERE status = 'Pending'`
+        );
 
-            const requests = await pool.query(
-                `SELECT
-                    COUNT(*)::int AS total,
-                    COUNT(*) FILTER
-                        (WHERE status = 'Pending')::int AS pending,
-                    COUNT(*) FILTER
-                        (WHERE status = 'Approved')::int AS approved,
-                    COUNT(*) FILTER
-                        (WHERE status = 'Rejected')::int AS rejected
-                 FROM recipient_requests`
-            );
+        const usersResult = await pool.query(
+            `SELECT COUNT(*) AS total
+             FROM users`
+        );
 
-            const contacts = await pool.query(
-                `SELECT
-                    COUNT(*)::int AS total,
-                    COUNT(*) FILTER
-                        (WHERE reply IS NULL)::int AS unanswered
-                 FROM contacts`
-            );
+        const totalDonations =
+            Number(donationResult.rows[0].total || 0);
 
-            const totalDonations =
-                Number(donations.rows[0].total);
+        const totalExpenditures =
+            Number(expenditureResult.rows[0].total || 0);
 
-            const totalExpenditures =
-                Number(expenditures.rows[0].total);
+        const pendingRequests =
+            Number(pendingResult.rows[0].total || 0);
 
-            res.json({
-                success: true,
-                dashboard: {
-                    total_users:
-                        users.rows[0].total,
+        const totalUsers =
+            Number(usersResult.rows[0].total || 0);
 
-                    total_donations:
-                        totalDonations,
-
-                    total_expenditures:
-                        totalExpenditures,
-
-                    balance:
-                        totalDonations -
-                        totalExpenditures,
-
-                    total_requests:
-                        requests.rows[0].total,
-
-                    pending_requests:
-                        requests.rows[0].pending,
-
-                    approved_requests:
-                        requests.rows[0].approved,
-
-                    rejected_requests:
-                        requests.rows[0].rejected,
-
-                    total_contacts:
-                        contacts.rows[0].total,
-
-                    unanswered_contacts:
-                        contacts.rows[0].unanswered
-                }
-            });
-        } catch (error) {
-            console.error(error);
-
-            res.status(500).json({
-                success: false,
-                message: "Failed to load dashboard"
-            });
-        }
-    }
+        res.json({
+            success: true,
+            dashboard: {
+                totalDonations,
+                totalExpenditures,
+                availableBalance:
+                    totalDonations - totalExpenditures,
+                pendingRequests,
+                totalUsers
+            }
+        });
+    })
 );
 
 /* =========================
-   SERVE FRONTEND
+   FRONTEND
 ========================= */
 
 app.use(
@@ -1421,30 +1353,62 @@ app.use(
     )
 );
 
+app.get(
+    /^(?!\/api).*/,
+    (req, res) => {
+        res.sendFile(
+            path.join(
+                __dirname,
+                "frontend",
+                "index.html"
+            )
+        );
+    }
+);
+
 /* =========================
-   FRONTEND FALLBACK
+   API 404
 ========================= */
 
-app.get(/^(?!\/api).*/, (req, res) => {
-    res.sendFile(
-        path.join(
-            __dirname,
-            "frontend",
-            "index.html"
-        )
-    );
-});
+app.use(
+    "/api",
+    (req, res) => {
+        res.status(404).json({
+            success: false,
+            message: "API endpoint not found."
+        });
+    }
+);
 
 /* =========================
-   API 404 HANDLER
+   ERROR HANDLER
 ========================= */
 
-app.use("/api", (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "API route not found"
-    });
-});
+app.use(
+    (err, req, res, next) => {
+        console.error(err);
+
+        if (err.code === "23505") {
+            return res.status(409).json({
+                success: false,
+                message: "This record already exists."
+            });
+        }
+
+        if (err.code === "23503") {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "This operation cannot be completed because the record is being used elsewhere."
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: "Internal server error."
+        });
+    }
+);
 
 /* =========================
    START SERVER
