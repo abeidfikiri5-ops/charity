@@ -2282,8 +2282,260 @@ function exportTableToPDF(
    EVENT LISTENERS
 ========================================================= */
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+document.addEventListener("DOMContentLoaded", () => {
+
+    /* AUTH TABS */
+
+    const loginTab = $("loginTab");
+    const registerTab = $("registerTab");
+
+    if (loginTab) {
+        loginTab.addEventListener("click", () => {
+            switchAuthTab("login");
+        });
+    }
+
+    if (registerTab) {
+        registerTab.addEventListener("click", () => {
+            switchAuthTab("register");
+        });
+    }
+
+
+    /* AUTH FORMS */
+
+    const loginForm = $("loginForm");
+    const registerForm = $("registerForm");
+
+    if (loginForm) {
+        loginForm.addEventListener(
+            "submit",
+            login
+        );
+    }
+
+    if (registerForm) {
+        registerForm.addEventListener(
+            "submit",
+            register
+        );
+    }
+
+
+    /* LOGOUT */
+
+    const logoutBtn = $("logoutBtn");
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener(
+            "click",
+            logout
+        );
+    }
+
+
+    /* NAVIGATION */
+
+    document
+        .querySelectorAll(".menu-btn")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    const page =
+                        button.dataset.page;
+
+                    if (page) {
+                        showPage(page);
+                    }
+
+                }
+            );
+
+        });
+
+
+    /* DONATIONS */
+
+    const addDonationBtn =
+        $("addDonationBtn");
+
+    const cancelDonation =
+        $("cancelDonation");
+
+    const donationForm =
+        $("donationForm");
+
+    if (addDonationBtn) {
+        addDonationBtn.addEventListener(
+            "click",
+            () => {
+                openDonationForm();
+            }
+        );
+    }
+
+    if (cancelDonation) {
+        cancelDonation.addEventListener(
+            "click",
+            closeDonationForm
+        );
+    }
+
+    if (donationForm) {
+        donationForm.addEventListener(
+            "submit",
+            saveDonation
+        );
+    }
+
+
+    /* EXPENDITURES */
+
+    const addExpenditureBtn =
+        $("addExpenditureBtn");
+
+    const cancelExpenditure =
+        $("cancelExpenditure");
+
+    const expenditureForm =
+        $("expenditureForm");
+
+    if (addExpenditureBtn) {
+        addExpenditureBtn.addEventListener(
+            "click",
+            () => {
+                openExpenditureForm();
+            }
+        );
+    }
+
+    if (cancelExpenditure) {
+        cancelExpenditure.addEventListener(
+            "click",
+            closeExpenditureForm
+        );
+    }
+
+    if (expenditureForm) {
+        expenditureForm.addEventListener(
+            "submit",
+            saveExpenditure
+        );
+    }
+
+
+    /* REQUESTS */
+
+    const addRequestBtn =
+        $("addRequestBtn");
+
+    const cancelRequest =
+        $("cancelRequest");
+
+    const requestForm =
+        $("requestForm");
+
+    if (addRequestBtn) {
+        addRequestBtn.addEventListener(
+            "click",
+            () => {
+                openRequestForm();
+            }
+        );
+    }
+
+    if (cancelRequest) {
+        cancelRequest.addEventListener(
+            "click",
+            closeRequestForm
+        );
+    }
+
+    if (requestForm) {
+        requestForm.addEventListener(
+            "submit",
+            saveRequest
+        );
+    }
+
+
+    /* CONTACTS */
+
+    const addContactBtn =
+        $("addContactBtn");
+
+    const cancelContact =
+        $("cancelContact");
+
+    const contactForm =
+        $("contactForm");
+
+    if (addContactBtn) {
+        addContactBtn.addEventListener(
+            "click",
+            () => {
+                openContactForm();
+            }
+        );
+    }
+
+    if (cancelContact) {
+        cancelContact.addEventListener(
+            "click",
+            closeContactForm
+        );
+    }
+
+    if (contactForm) {
+        contactForm.addEventListener(
+            "submit",
+            saveContact
+        );
+    }
+
+
+    /* USERS */
+
+    const addUserBtn =
+        $("addUserBtn");
+
+    const cancelUser =
+        $("cancelUser");
+
+    const userForm =
+        $("userForm");
+
+    if (addUserBtn) {
+        addUserBtn.addEventListener(
+            "click",
+            () => {
+                openUserForm();
+            }
+        );
+    }
+
+    if (cancelUser) {
+        cancelUser.addEventListener(
+            "click",
+            closeUserForm
+        );
+    }
+
+    if (userForm) {
+        userForm.addEventListener(
+            "submit",
+            saveUser
+        );
+    }
+
+
+    /* START APPLICATION */
+
+    checkSession();
+
+});
 
         /*
