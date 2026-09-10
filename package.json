@@ -4,8 +4,8 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
-  },
+  "start": "node init-db.js && node server.js"
+},
   "engines": {
     "node": ">=18"
   },
