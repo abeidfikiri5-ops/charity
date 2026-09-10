@@ -1,163 +1,31 @@
-/* =====================================================
-   MUST CHARITY & EXPENDITURE MANAGEMENT SYSTEM
-   FRONTEND VERSION
+"use strict";
 
-   This version uses localStorage.
-   Later we will replace the localStorage functions
-   with the real Node.js + PostgreSQL API.
-===================================================== */
+/* =========================================================
+   MUST CHARITY MANAGEMENT SYSTEM
+   Frontend JavaScript
+========================================================= */
 
+const API = "/api";
 
-/* =====================================================
-   DEFAULT USERS
-===================================================== */
+let token = localStorage.getItem("must_token") || "";
+let currentUser = null;
 
-const DEFAULT_USERS = [
-
-    {
-        id: 1,
-        name: "System Administrator",
-        email: "admin@mustcharity.com",
-        password: "Admin@12345",
-        role: "admin"
-    },
-
-    {
-        id: 2,
-        name: "Accountant User",
-        email: "accountant@mustcharity.com",
-        password: "Accountant@123",
-        role: "accountant"
-    },
-
-    {
-        id: 3,
-        name: "University Supervisor",
-        email: "supervisor@mustcharity.com",
-        password: "Supervisor@123",
-        role: "supervisor"
-    },
-
-    {
-        id: 4,
-        name: "Donor User",
-        email: "donor@mustcharity.com",
-        password: "Donor@123",
-        role: "donor"
-    },
-
-    {
-        id: 5,
-        name: "Recipient User",
-        email: "recipient@mustcharity.com",
-        password: "Recipient@123",
-        role: "recipient"
-    }
-
-];
+let donations = [];
+let expenditures = [];
+let requests = [];
+let contacts = [];
+let users = [];
 
 
-/* =====================================================
-   APPLICATION DATA
-===================================================== */
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
 
-let users =
-    JSON.parse(localStorage.getItem("must_users"))
-    || DEFAULT_USERS;
-
-let donations =
-    JSON.parse(localStorage.getItem("must_donations"))
-    || [];
-
-let expenditures =
-    JSON.parse(localStorage.getItem("must_expenditures"))
-    || [];
-
-let requests =
-    JSON.parse(localStorage.getItem("must_requests"))
-    || [];
-
-let contacts =
-    JSON.parse(localStorage.getItem("must_contacts"))
-    || [];
-
-let currentUser =
-    JSON.parse(localStorage.getItem("must_current_user"))
-    || null;
-
-
-/* =====================================================
-   SAVE DATA
-===================================================== */
-
-function saveData() {
-
-    localStorage.setItem(
-        "must_users",
-        JSON.stringify(users)
-    );
-
-    localStorage.setItem(
-        "must_donations",
-        JSON.stringify(donations)
-    );
-
-    localStorage.setItem(
-        "must_expenditures",
-        JSON.stringify(expenditures)
-    );
-
-    localStorage.setItem(
-        "must_requests",
-        JSON.stringify(requests)
-    );
-
-    localStorage.setItem(
-        "must_contacts",
-        JSON.stringify(contacts)
-    );
+function $(id) {
+    return document.getElementById(id);
 }
-
-
-/* =====================================================
-   HELPER FUNCTIONS
-===================================================== */
-
-function generateId(array) {
-
-    if (array.length === 0) {
-        return 1;
-    }
-
-    return Math.max(
-        ...array.map(item => Number(item.id))
-    ) + 1;
-}
-
-
-function formatMoney(amount) {
-
-    return "TZS " +
-        Number(amount || 0).toLocaleString(
-            "en-TZ",
-            {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }
-        );
-}
-
-
-function formatDate(date) {
-
-    return new Date(date).toLocaleString(
-        "en-TZ"
-    );
-}
-
 
 function escapeHTML(value) {
-
     return String(value ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -166,1005 +34,741 @@ function escapeHTML(value) {
         .replace(/'/g, "&#039;");
 }
 
+function formatMoney(value) {
+    const number = Number(value || 0);
 
-/* =====================================================
-   TOAST
-===================================================== */
+    return number.toLocaleString("en-TZ", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
 
 function showToast(message) {
+    const toast = $("toast");
 
-    const toast =
-        document.getElementById("toast");
+    if (!toast) return;
 
     toast.textContent = message;
-
     toast.classList.add("show");
 
     setTimeout(() => {
-
         toast.classList.remove("show");
-
     }, 3000);
 }
 
-
-/* =====================================================
-   AUTHENTICATION
-===================================================== */
-
-const loginTab =
-    document.getElementById("loginTab");
-
-const registerTab =
-    document.getElementById("registerTab");
-
-const loginForm =
-    document.getElementById("loginForm");
-
-const registerForm =
-    document.getElementById("registerForm");
-
-
-loginTab.addEventListener("click", function () {
-
-    loginTab.classList.add("active");
-
-    registerTab.classList.remove("active");
-
-    loginForm.classList.remove("hidden");
-
-    registerForm.classList.add("hidden");
-
-});
-
-
-registerTab.addEventListener("click", function () {
-
-    registerTab.classList.add("active");
-
-    loginTab.classList.remove("active");
-
-    registerForm.classList.remove("hidden");
-
-    loginForm.classList.add("hidden");
-
-});
-
-
-/* =====================================================
-   LOGIN
-===================================================== */
-
-loginForm.addEventListener(
-    "submit",
-    function (event) {
-
-        event.preventDefault();
-
-        const email =
-            document.getElementById(
-                "loginEmail"
-            ).value
-            .trim()
-            .toLowerCase();
-
-        const password =
-            document.getElementById(
-                "loginPassword"
-            ).value;
-
-
-        const user =
-            users.find(
-                item =>
-                    item.email.toLowerCase()
-                    === email
-                    &&
-                    item.password === password
-            );
-
-
-        if (!user) {
-
-            document.getElementById(
-                "loginMessage"
-            ).textContent =
-                "Invalid email or password.";
-
-            document.getElementById(
-                "loginMessage"
-            ).className =
-                "message error-message";
-
-            return;
-        }
-
-
-        currentUser = user;
-
-        localStorage.setItem(
-            "must_current_user",
-            JSON.stringify(currentUser)
-        );
-
-
-        document.getElementById(
-            "loginMessage"
-        ).textContent = "";
-
-
-        showApplication();
-
-        showToast(
-            "Login successful."
-        );
-
-    }
-);
-
-
-/* =====================================================
-   REGISTER
-===================================================== */
-
-registerForm.addEventListener(
-    "submit",
-    function (event) {
-
-        event.preventDefault();
-
-
-        const name =
-            document.getElementById(
-                "registerName"
-            ).value.trim();
-
-        const email =
-            document.getElementById(
-                "registerEmail"
-            ).value
-            .trim()
-            .toLowerCase();
-
-        const password =
-            document.getElementById(
-                "registerPassword"
-            ).value;
-
-        const role =
-            document.getElementById(
-                "registerRole"
-            ).value;
-
-
-        if (
-            !name ||
-            !email ||
-            !password ||
-            !role
-        ) {
-
-            showRegisterMessage(
-                "Please fill all fields.",
-                true
-            );
-
-            return;
-        }
-
-
-        const existingUser =
-            users.find(
-                user =>
-                    user.email.toLowerCase()
-                    === email
-            );
-
-
-        if (existingUser) {
-
-            showRegisterMessage(
-                "This email is already registered.",
-                true
-            );
-
-            return;
-        }
-
-
-        const newUser = {
-
-            id: generateId(users),
-
-            name: name,
-
-            email: email,
-
-            password: password,
-
-            role: role
-
-        };
-
-
-        users.push(newUser);
-
-        saveData();
-
-
-        showRegisterMessage(
-            "Account created successfully.",
-            false
-        );
-
-
-        document.getElementById(
-            "registerForm"
-        ).reset();
-
-
-        showToast(
-            "Account created successfully."
-        );
-
-    }
-);
-
-
-function showRegisterMessage(
-    message,
-    error
-) {
-
-    const element =
-        document.getElementById(
-            "registerMessage"
-        );
+function showMessage(element, message, success = false) {
+    if (!element) return;
 
     element.textContent = message;
+    element.className = success
+        ? "message success-message"
+        : "message error-message";
+}
 
-    element.className =
-        error
-            ? "message error-message"
-            : "message success-message";
+function hideElement(id) {
+    const element = $(id);
+
+    if (element) {
+        element.classList.add("hidden");
+    }
+}
+
+function showElement(id) {
+    const element = $(id);
+
+    if (element) {
+        element.classList.remove("hidden");
+    }
 }
 
 
-/* =====================================================
-   SHOW APPLICATION
-===================================================== */
+/* =========================================================
+   API REQUEST
+========================================================= */
 
-function showApplication() {
+async function apiRequest(endpoint, options = {}) {
 
-    document.getElementById(
-        "authSection"
-    ).classList.add("hidden");
+    const headers = {
+        ...(options.headers || {})
+    };
+
+    if (options.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+
+        const response = await fetch(`${API}${endpoint}`, {
+            ...options,
+            headers
+        });
+
+        let data = {};
+
+        try {
+            data = await response.json();
+        } catch {
+            data = {};
+        }
+
+        if (response.status === 401) {
+            token = "";
+            currentUser = null;
+
+            localStorage.removeItem("must_token");
+            localStorage.removeItem("must_user");
+
+            showAuth();
+
+            throw new Error(
+                data.message || "Your session has expired. Please login again."
+            );
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || `Request failed with status ${response.status}.`
+            );
+        }
+
+        return data;
+
+    } catch (error) {
+
+        if (error instanceof TypeError) {
+            throw new Error(
+                "Unable to connect to the server."
+            );
+        }
+
+        throw error;
+    }
+}
 
 
-    document.getElementById(
-        "appSection"
-    ).classList.remove("hidden");
+/* =========================================================
+   AUTHENTICATION
+========================================================= */
 
+function showAuth() {
 
-    document.getElementById(
-        "currentUserName"
-    ).textContent =
-        currentUser.name;
+    showElement("authSection");
+    hideElement("appSection");
 
+    switchAuthTab("login");
 
-    document.getElementById(
-        "currentRole"
-    ).textContent =
-        currentUser.role.toUpperCase();
+    if ($("loginMessage")) {
+        $("loginMessage").textContent = "";
+    }
 
+    if ($("registerMessage")) {
+        $("registerMessage").textContent = "";
+    }
+}
 
-    configurePermissions();
+function showApp() {
 
-    updateDashboard();
+    hideElement("authSection");
+    showElement("appSection");
+
+    updateUserInformation();
+    applyPermissions();
 
     showPage("dashboardPage");
 
+    refreshAll();
+}
+
+function switchAuthTab(tab) {
+
+    const loginForm = $("loginForm");
+    const registerForm = $("registerForm");
+
+    const loginTab = $("loginTab");
+    const registerTab = $("registerTab");
+
+    if (tab === "login") {
+
+        loginForm.classList.remove("hidden");
+        registerForm.classList.add("hidden");
+
+        loginTab.classList.add("active");
+        registerTab.classList.remove("active");
+
+    } else {
+
+        loginForm.classList.add("hidden");
+        registerForm.classList.remove("hidden");
+
+        loginTab.classList.remove("active");
+        registerTab.classList.add("active");
+    }
 }
 
 
-/* =====================================================
-   LOGOUT
-===================================================== */
+/* LOGIN */
 
-document
-    .getElementById("logoutBtn")
-    .addEventListener(
-        "click",
-        function () {
+async function login(event) {
 
-            currentUser = null;
+    event.preventDefault();
 
-            localStorage.removeItem(
-                "must_current_user"
-            );
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPassword").value;
 
-            document
-                .getElementById(
-                    "appSection"
-                )
-                .classList.add("hidden");
+    const message = $("loginMessage");
 
+    showMessage(message, "Signing in...");
 
-            document
-                .getElementById(
-                    "authSection"
-                )
-                .classList.remove("hidden");
+    try {
 
+        const data = await apiRequest("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({
+                email,
+                password
+            })
+        });
 
-            loginForm.reset();
+        token = data.token;
+        currentUser = data.user;
 
-            showToast(
-                "You have logged out."
-            );
-
-        }
-    );
-
-
-/* =====================================================
-   SIDEBAR NAVIGATION
-===================================================== */
-
-document
-    .querySelectorAll(".menu-btn")
-    .forEach(button => {
-
-        button.addEventListener(
-            "click",
-            function () {
-
-                const page =
-                    this.dataset.page;
-
-                showPage(page);
-
-            }
+        localStorage.setItem("must_token", token);
+        localStorage.setItem(
+            "must_user",
+            JSON.stringify(currentUser)
         );
 
+        $("loginForm").reset();
+
+        showApp();
+
+        showToast("Login successful.");
+
+    } catch (error) {
+
+        showMessage(
+            message,
+            error.message,
+            false
+        );
+    }
+}
+
+
+/* REGISTER */
+
+async function register(event) {
+
+    event.preventDefault();
+
+    const full_name = $("registerName").value.trim();
+    const email = $("registerEmail").value.trim();
+    const password = $("registerPassword").value;
+    const role = $("registerRole").value;
+
+    const message = $("registerMessage");
+
+    showMessage(message, "Creating account...");
+
+    try {
+
+        const data = await apiRequest("/auth/register", {
+            method: "POST",
+            body: JSON.stringify({
+                full_name,
+                email,
+                password,
+                role
+            })
+        });
+
+        token = data.token;
+        currentUser = data.user;
+
+        localStorage.setItem("must_token", token);
+        localStorage.setItem(
+            "must_user",
+            JSON.stringify(currentUser)
+        );
+
+        $("registerForm").reset();
+
+        showApp();
+
+        showToast("Account created successfully.");
+
+    } catch (error) {
+
+        showMessage(
+            message,
+            error.message,
+            false
+        );
+    }
+}
+
+
+/* LOGOUT */
+
+function logout() {
+
+    token = "";
+    currentUser = null;
+
+    localStorage.removeItem("must_token");
+    localStorage.removeItem("must_user");
+
+    showAuth();
+
+    showToast("You have been logged out.");
+}
+
+
+/* CHECK CURRENT SESSION */
+
+async function checkSession() {
+
+    if (!token) {
+        showAuth();
+        return;
+    }
+
+    try {
+
+        const data = await apiRequest("/auth/me");
+
+        currentUser = data.user;
+
+        localStorage.setItem(
+            "must_user",
+            JSON.stringify(currentUser)
+        );
+
+        showApp();
+
+    } catch (error) {
+
+        token = "";
+        currentUser = null;
+
+        localStorage.removeItem("must_token");
+        localStorage.removeItem("must_user");
+
+        showAuth();
+    }
+}
+
+
+/* =========================================================
+   USER INFORMATION AND PERMISSIONS
+========================================================= */
+
+function updateUserInformation() {
+
+    if (!currentUser) return;
+
+    $("currentUserName").textContent =
+        currentUser.full_name || "User";
+
+    $("currentRole").textContent =
+        currentUser.role || "Role";
+
+    const permissionInfo = $("permissionInfo");
+
+    if (permissionInfo) {
+
+        permissionInfo.textContent =
+            `Logged in as ${currentUser.role}. Your available actions are based on your role.`;
+
+        permissionInfo.className = "permission";
+    }
+}
+
+
+function applyPermissions() {
+
+    if (!currentUser) return;
+
+    const role = currentUser.role;
+
+    const menuButtons =
+        document.querySelectorAll(".menu-btn");
+
+    menuButtons.forEach(button => {
+
+        const page = button.dataset.page;
+
+        let allowed = true;
+
+        if (page === "usersPage") {
+            allowed = role === "Admin";
+        }
+
+        if (page === "expenditurePage") {
+            allowed = [
+                "Admin",
+                "Accountant"
+            ].includes(role);
+        }
+
+        if (page === "requestsPage") {
+            allowed = true;
+        }
+
+        if (page === "donationsPage") {
+            allowed = true;
+        }
+
+        if (page === "contactsPage") {
+            allowed = true;
+        }
+
+        button.classList.toggle(
+            "hidden",
+            !allowed
+        );
     });
 
+
+    /* Donation button */
+
+    const addDonationBtn =
+        $("addDonationBtn");
+
+    if (addDonationBtn) {
+
+        addDonationBtn.classList.toggle(
+            "hidden",
+            ![
+                "Admin",
+                "Donor"
+            ].includes(role)
+        );
+    }
+
+
+    /* Expenditure button */
+
+    const addExpenditureBtn =
+        $("addExpenditureBtn");
+
+    if (addExpenditureBtn) {
+
+        addExpenditureBtn.classList.toggle(
+            "hidden",
+            ![
+                "Admin",
+                "Accountant"
+            ].includes(role)
+        );
+    }
+
+
+    /* Request button */
+
+    const addRequestBtn =
+        $("addRequestBtn");
+
+    if (addRequestBtn) {
+
+        addRequestBtn.classList.toggle(
+            "hidden",
+            role !== "Recipient"
+        );
+    }
+
+
+    /* User button */
+
+    const addUserBtn =
+        $("addUserBtn");
+
+    if (addUserBtn) {
+
+        addUserBtn.classList.toggle(
+            "hidden",
+            role !== "Admin"
+        );
+    }
+
+
+    /* Donor field */
+
+    const donorFieldGroup =
+        $("donorFieldGroup");
+
+    if (donorFieldGroup) {
+
+        donorFieldGroup.classList.toggle(
+            "hidden",
+            role === "Donor"
+        );
+    }
+}
+
+
+/* =========================================================
+   PAGE NAVIGATION
+========================================================= */
 
 function showPage(pageId) {
 
     document
         .querySelectorAll(".page")
         .forEach(page => {
-
             page.classList.add("hidden");
-
         });
 
+    const selectedPage = $(pageId);
 
-    const page =
-        document.getElementById(pageId);
-
-
-    if (page) {
-
-        page.classList.remove("hidden");
-
+    if (selectedPage) {
+        selectedPage.classList.remove("hidden");
     }
-
 
     document
         .querySelectorAll(".menu-btn")
         .forEach(button => {
 
-            button.classList.remove(
-                "active"
+            button.classList.toggle(
+                "active",
+                button.dataset.page === pageId
+            );
+        });
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+async function loadDashboard() {
+
+    try {
+
+        const data =
+            await apiRequest("/dashboard");
+
+        const dashboard =
+            data.dashboard;
+
+        $("totalDonation").textContent =
+            formatMoney(
+                dashboard.totalDonations
             );
 
-            if (
-                button.dataset.page
-                === pageId
-            ) {
+        $("totalExpenditure").textContent =
+            formatMoney(
+                dashboard.totalExpenditures
+            );
 
-                button.classList.add(
-                    "active"
-                );
+        $("availableBalance").textContent =
+            formatMoney(
+                dashboard.availableBalance
+            );
 
-            }
+        $("pendingRequests").textContent =
+            dashboard.pendingRequests;
 
-        });
+    } catch (error) {
+
+        console.error(
+            "Dashboard error:",
+            error
+        );
+    }
+}
 
 
-    if (pageId === "donationsPage") {
+/* =========================================================
+   DONATIONS
+========================================================= */
+
+async function loadDonations() {
+
+    try {
+
+        const data =
+            await apiRequest("/donations");
+
+        donations =
+            data.donations || [];
 
         renderDonations();
 
+    } catch (error) {
+
+        console.error(
+            "Donation loading error:",
+            error
+        );
+
+        $("donationTableBody").innerHTML =
+            `<tr>
+                <td colspan="6">
+                    ${escapeHTML(error.message)}
+                </td>
+            </tr>`;
     }
-
-    if (pageId === "expenditurePage") {
-
-        renderExpenditures();
-
-    }
-
-    if (pageId === "requestsPage") {
-
-        renderRequests();
-
-    }
-
-    if (pageId === "contactsPage") {
-
-        renderContacts();
-
-    }
-
-    if (pageId === "usersPage") {
-
-        renderUsers();
-
-    }
-
-    if (pageId === "dashboardPage") {
-
-        updateDashboard();
-
-    }
-
 }
 
 
-/* =====================================================
-   ROLE PERMISSIONS
-===================================================== */
+function renderDonations() {
 
-function configurePermissions() {
+    const body =
+        $("donationTableBody");
 
-    const role =
-        currentUser.role;
+    if (!body) return;
 
+    if (donations.length === 0) {
 
-    const usersMenu =
-        document.getElementById(
-            "usersMenu"
-        );
+        body.innerHTML =
+            `<tr>
+                <td colspan="6">
+                    No donations found.
+                </td>
+            </tr>`;
 
-
-    if (role === "admin") {
-
-        usersMenu.classList.remove(
-            "hidden"
-        );
-
-    } else {
-
-        usersMenu.classList.add(
-            "hidden"
-        );
-
+        return;
     }
 
+    body.innerHTML =
+        donations.map(donation => {
 
-    const permissionInfo =
-        document.getElementById(
-            "permissionInfo"
-        );
+            let actions = "";
 
+            if (
+                currentUser.role === "Admin" ||
+                (
+                    currentUser.role === "Donor" &&
+                    Number(donation.donor_id) ===
+                    Number(currentUser.id)
+                )
+            ) {
 
-    let permissions = [];
+                actions = `
+                    <button
+                        class="action-button edit-button"
+                        onclick="editDonation(${donation.id})"
+                    >
+                        Edit
+                    </button>
 
+                    <button
+                        class="action-button delete-button"
+                        onclick="deleteDonation(${donation.id})"
+                    >
+                        Delete
+                    </button>
+                `;
+            }
 
-    if (role === "admin") {
+            return `
+                <tr>
 
-        permissions = [
-            "Manage all users",
-            "Create donations",
-            "View donations",
-            "Update donations",
-            "Delete donations",
-            "Manage expenditures",
-            "Manage recipient requests",
-            "Manage contacts",
-            "Download PDF",
-            "Download Excel"
-        ];
+                    <td>
+                        ${donation.id}
+                    </td>
 
-    }
+                    <td>
+                        ${escapeHTML(
+                            donation.donor_name
+                        )}
+                    </td>
 
+                    <td>
+                        ${formatMoney(
+                            donation.amount
+                        )}
+                    </td>
 
-    if (role === "accountant") {
+                    <td>
+                        ${escapeHTML(
+                            donation.description
+                        )}
+                    </td>
 
-        permissions = [
-            "View donations",
-            "Create expenditures",
-            "View expenditures",
-            "Update expenditures",
-            "Delete expenditures",
-            "View recipient requests",
-            "Reply to supervisors",
-            "Download PDF",
-            "Download Excel"
-        ];
+                    <td>
+                        ${escapeHTML(
+                            donation.donation_date
+                        )}
+                    </td>
 
-    }
+                    <td>
+                        ${actions}
+                    </td>
 
+                </tr>
+            `;
 
-    if (role === "supervisor") {
-
-        permissions = [
-            "View donations",
-            "View expenditures",
-            "View recipient requests",
-            "Contact Admin",
-            "Contact Accountant",
-            "View replies",
-            "Download PDF",
-            "Download Excel"
-        ];
-
-    }
-
-
-    if (role === "donor") {
-
-        permissions = [
-            "Create donations",
-            "View own donations",
-            "View donation information",
-            "Download PDF",
-            "Download Excel"
-        ];
-
-    }
-
-
-    if (role === "recipient") {
-
-        permissions = [
-            "Create assistance request",
-            "View own requests",
-            "Update pending request",
-            "Delete pending request",
-            "View request result",
-            "Download PDF",
-            "Download Excel"
-        ];
-
-    }
-
-
-    permissionInfo.innerHTML =
-        "<ul>" +
-        permissions
-            .map(
-                permission =>
-                    `<li>${escapeHTML(permission)}</li>`
-            )
-            .join("") +
-        "</ul>";
-
+        }).join("");
 }
-
-
-/* =====================================================
-   DASHBOARD
-===================================================== */
-
-function updateDashboard() {
-
-    const totalDonation =
-        donations.reduce(
-            (sum, donation) =>
-                sum + Number(donation.amount),
-            0
-        );
-
-
-    const totalExpenditure =
-        expenditures.reduce(
-            (sum, expenditure) =>
-                sum + Number(expenditure.amount),
-            0
-        );
-
-
-    const balance =
-        totalDonation -
-        totalExpenditure;
-
-
-    const pending =
-        requests.filter(
-            request =>
-                request.status === "Pending"
-        ).length;
-
-
-    document.getElementById(
-        "totalDonation"
-    ).textContent =
-        formatMoney(totalDonation);
-
-
-    document.getElementById(
-        "totalExpenditure"
-    ).textContent =
-        formatMoney(totalExpenditure);
-
-
-    document.getElementById(
-        "availableBalance"
-    ).textContent =
-        formatMoney(balance);
-
-
-    document.getElementById(
-        "pendingRequests"
-    ).textContent =
-        pending;
-
-}
-
-
-/* =====================================================
-   DONATION FORM
-===================================================== */
-
-document
-    .getElementById(
-        "addDonationBtn"
-    )
-    .addEventListener(
-        "click",
-        function () {
-
-            openDonationForm();
-
-        }
-    );
-
-
-document
-    .getElementById(
-        "cancelDonation"
-    )
-    .addEventListener(
-        "click",
-        function () {
-
-            closeDonationForm();
-
-        }
-    );
 
 
 function openDonationForm(donation = null) {
 
-    const container =
-        document.getElementById(
-            "donationFormContainer"
-        );
-
-
-    container.classList.remove(
-        "hidden"
+    showElement(
+        "donationFormContainer"
     );
-
 
     if (donation) {
 
-        document.getElementById(
-            "donationFormTitle"
-        ).textContent =
-            "Update Donation";
+        $("donationFormTitle").textContent =
+            "Edit Donation";
 
-
-        document.getElementById(
-            "donationId"
-        ).value =
+        $("donationId").value =
             donation.id;
 
+        $("donorName").value =
+            donation.donor_name || "";
 
-        document.getElementById(
-            "donorName"
-        ).value =
-            donation.donor;
-
-
-        document.getElementById(
-            "donationAmount"
-        ).value =
+        $("donationAmount").value =
             donation.amount;
 
+        $("donationPurpose").value =
+            donation.description || "";
 
-        document.getElementById(
-            "donationPurpose"
-        ).value =
-            donation.purpose;
+        $("donationDate").value =
+            donation.donation_date || "";
 
     } else {
 
-        document.getElementById(
-            "donationFormTitle"
-        ).textContent =
+        $("donationFormTitle").textContent =
             "Add Donation";
 
+        $("donationForm").reset();
 
-        document
-            .getElementById(
-                "donationForm"
-            )
-            .reset();
+        $("donationId").value = "";
 
+        if (currentUser.role === "Donor") {
 
-        document.getElementById(
-            "donationId"
-        ).value = "";
+            $("donorName").value =
+                currentUser.full_name;
 
+            $("donorName").disabled = true;
+
+        } else {
+
+            $("donorName").disabled = false;
+        }
     }
-
 }
 
 
 function closeDonationForm() {
 
-    document
-        .getElementById(
-            "donationFormContainer"
-        )
-        .classList.add("hidden");
-
-}
-
-
-/* =====================================================
-   SAVE DONATION
-===================================================== */
-
-document
-    .getElementById(
-        "donationForm"
-    )
-    .addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
-
-
-            const id =
-                document.getElementById(
-                    "donationId"
-                ).value;
-
-
-            const donor =
-                document.getElementById(
-                    "donorName"
-                ).value.trim();
-
-
-            const amount =
-                Number(
-                    document.getElementById(
-                        "donationAmount"
-                    ).value
-                );
-
-
-            const purpose =
-                document.getElementById(
-                    "donationPurpose"
-                ).value.trim();
-
-
-            if (
-                !donor ||
-                amount <= 0 ||
-                !purpose
-            ) {
-
-                showToast(
-                    "Please enter valid donation information."
-                );
-
-                return;
-
-            }
-
-
-            if (id) {
-
-                const donation =
-                    donations.find(
-                        item =>
-                            Number(item.id)
-                            === Number(id)
-                    );
-
-
-                if (donation) {
-
-                    donation.donor =
-                        donor;
-
-                    donation.amount =
-                        amount;
-
-                    donation.purpose =
-                        purpose;
-
-                }
-
-                showToast(
-                    "Donation updated."
-                );
-
-            } else {
-
-                donations.push({
-
-                    id: generateId(
-                        donations
-                    ),
-
-                    donor: donor,
-
-                    amount: amount,
-
-                    purpose: purpose,
-
-                    date: new Date().toISOString(),
-
-                    createdBy:
-                        currentUser.id
-
-                });
-
-
-                showToast(
-                    "Donation created."
-                );
-
-            }
-
-
-            saveData();
-
-            closeDonationForm();
-
-            renderDonations();
-
-            updateDashboard();
-
-        }
+    hideElement(
+        "donationFormContainer"
     );
 
+    $("donationForm").reset();
 
-/* =====================================================
-   RENDER DONATIONS
-===================================================== */
+    $("donationId").value = "";
 
-function renderDonations() {
-
-    const body =
-        document.getElementById(
-            "donationTableBody"
-        );
-
-
-    let visibleDonations =
-        donations;
-
-
-    if (
-        currentUser.role ===
-        "donor"
-    ) {
-
-        visibleDonations =
-            donations.filter(
-                donation =>
-                    donation.createdBy
-                    === currentUser.id
-            );
-
-    }
-
-
-    if (
-        visibleDonations.length === 0
-    ) {
-
-        body.innerHTML = `
-            <tr>
-                <td colspan="6">
-                    No donation records found.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    body.innerHTML =
-        visibleDonations
-            .map(
-                donation => {
-
-                    let actions = "";
-
-
-                    if (
-                        currentUser.role
-                        === "admin"
-                    ) {
-
-                        actions = `
-
-                            <button
-                                class="action-btn edit-btn"
-                                onclick="editDonation(${donation.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                class="action-btn delete-btn"
-                                onclick="deleteDonation(${donation.id})"
-                            >
-                                Delete
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    return `
-
-                        <tr>
-
-                            <td>
-                                ${donation.id}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    donation.donor
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatMoney(
-                                    donation.amount
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    donation.purpose
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatDate(
-                                    donation.date
-                                )}
-                            </td>
-
-                            <td>
-                                ${actions}
-                            </td>
-
-                        </tr>
-
-                    `;
-
-                }
-            )
-            .join("");
-
+    $("donorName").disabled = false;
 }
 
 
@@ -1172,1780 +776,1209 @@ function editDonation(id) {
 
     const donation =
         donations.find(
-            item =>
-                Number(item.id)
-                === Number(id)
+            item => Number(item.id) === Number(id)
         );
 
+    if (!donation) return;
 
-    if (donation) {
-
-        openDonationForm(
-            donation
-        );
-
-    }
-
+    openDonationForm(donation);
 }
 
 
-function deleteDonation(id) {
+async function saveDonation(event) {
+
+    event.preventDefault();
+
+    try {
+
+        const id =
+            $("donationId").value;
+
+        const amount =
+            Number($("donationAmount").value);
+
+        const description =
+            $("donationPurpose").value.trim();
+
+        const donation_date =
+            $("donationDate").value || null;
+
+        const body = {
+            amount,
+            description,
+            donation_date
+        };
+
+        if (!id) {
+
+            if (currentUser.role === "Admin") {
+
+                const donorValue =
+                    $("donorName").value.trim();
+
+                const donor =
+                    users.find(user =>
+                        user.role === "Donor" &&
+                        (
+                            String(user.id) === donorValue ||
+                            user.email.toLowerCase() ===
+                                donorValue.toLowerCase() ||
+                            user.full_name.toLowerCase() ===
+                                donorValue.toLowerCase()
+                        )
+                    );
+
+                if (!donor) {
+
+                    throw new Error(
+                        "For Admin, enter an existing Donor ID, email or exact name."
+                    );
+                }
+
+                body.donor_id =
+                    donor.id;
+            }
+
+            await apiRequest(
+                "/donations",
+                {
+                    method: "POST",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "Donation created successfully."
+            );
+
+        } else {
+
+            await apiRequest(
+                `/donations/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "Donation updated successfully."
+            );
+        }
+
+        closeDonationForm();
+
+        await loadDonations();
+        await loadDashboard();
+
+    } catch (error) {
+
+        showToast(error.message);
+    }
+}
+
+
+async function deleteDonation(id) {
 
     if (
         !confirm(
             "Are you sure you want to delete this donation?"
         )
     ) {
-
         return;
-
     }
 
+    try {
 
-    donations =
-        donations.filter(
-            donation =>
-                Number(donation.id)
-                !== Number(id)
+        await apiRequest(
+            `/donations/${id}`,
+            {
+                method: "DELETE"
+            }
         );
 
+        showToast(
+            "Donation deleted successfully."
+        );
 
-    saveData();
+        await loadDonations();
+        await loadDashboard();
 
-    renderDonations();
+    } catch (error) {
 
-    updateDashboard();
-
-    showToast(
-        "Donation deleted."
-    );
-
+        showToast(error.message);
+    }
 }
 
 
-/* =====================================================
-   EXPENDITURE FORM
-===================================================== */
+/* =========================================================
+   EXPENDITURES
+========================================================= */
 
-document
-    .getElementById(
-        "addExpenditureBtn"
-    )
-    .addEventListener(
-        "click",
-        function () {
+async function loadExpenditures() {
 
-            if (
-                currentUser.role !==
-                "admin"
-                &&
-                currentUser.role !==
-                "accountant"
-            ) {
+    try {
 
-                showToast(
-                    "You do not have permission to add expenditure."
+        const data =
+            await apiRequest("/expenditures");
+
+        expenditures =
+            data.expenditures || [];
+
+        renderExpenditures();
+
+    } catch (error) {
+
+        console.error(
+            "Expenditure loading error:",
+            error
+        );
+    }
+}
+
+
+function splitExpenditureDescription(description) {
+
+    const text =
+        String(description || "");
+
+    if (
+        text.startsWith("Title: ")
+    ) {
+
+        const newline =
+            text.indexOf("\n");
+
+        if (newline !== -1) {
+
+            return {
+                title:
+                    text.substring(
+                        7,
+                        newline
+                    ),
+
+                description:
+                    text.substring(
+                        newline + 1
+                    )
+            };
+        }
+
+        return {
+            title:
+                text.substring(7),
+
+            description: ""
+        };
+    }
+
+    return {
+        title: "",
+        description: text
+    };
+}
+
+
+function renderExpenditures() {
+
+    const body =
+        $("expenditureTableBody");
+
+    if (!body) return;
+
+    if (expenditures.length === 0) {
+
+        body.innerHTML =
+            `<tr>
+                <td colspan="7">
+                    No expenditures found.
+                </td>
+            </tr>`;
+
+        return;
+    }
+
+    body.innerHTML =
+        expenditures.map(item => {
+
+            const parsed =
+                splitExpenditureDescription(
+                    item.description
                 );
 
-                return;
+            let actions = "";
 
+            if (
+                currentUser.role === "Admin" ||
+                currentUser.role === "Accountant"
+            ) {
+
+                actions = `
+                    <button
+                        class="action-button edit-button"
+                        onclick="editExpenditure(${item.id})"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        class="action-button delete-button"
+                        onclick="deleteExpenditure(${item.id})"
+                    >
+                        Delete
+                    </button>
+                `;
             }
 
+            return `
+                <tr>
 
-            openExpenditureForm();
+                    <td>
+                        ${item.id}
+                    </td>
 
-        }
+                    <td>
+                        ${escapeHTML(
+                            parsed.title
+                        )}
+                    </td>
+
+                    <td>
+                        ${formatMoney(
+                            item.amount
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            parsed.description
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.expenditure_date
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.created_by_name
+                        )}
+                    </td>
+
+                    <td>
+                        ${actions}
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
+
+
+function openExpenditureForm(item = null) {
+
+    showElement(
+        "expenditureFormContainer"
     );
 
+    if (item) {
 
-document
-    .getElementById(
-        "cancelExpenditure"
-    )
-    .addEventListener(
-        "click",
-        function () {
+        const parsed =
+            splitExpenditureDescription(
+                item.description
+            );
 
-            closeExpenditureForm();
+        $("expenditureFormTitle").textContent =
+            "Edit Expenditure";
 
-        }
-    );
+        $("expenditureId").value =
+            item.id;
 
+        $("expenditureTitle").value =
+            parsed.title;
 
-function openExpenditureForm(
-    expenditure = null
-) {
+        $("expenditureAmount").value =
+            item.amount;
 
-    const container =
-        document.getElementById(
-            "expenditureFormContainer"
-        );
+        $("expenditureDescription").value =
+            parsed.description;
 
-
-    container.classList.remove(
-        "hidden"
-    );
-
-
-    if (expenditure) {
-
-        document.getElementById(
-            "expenditureFormTitle"
-        ).textContent =
-            "Update Expenditure";
-
-
-        document.getElementById(
-            "expenditureId"
-        ).value =
-            expenditure.id;
-
-
-        document.getElementById(
-            "expenditureTitle"
-        ).value =
-            expenditure.title;
-
-
-        document.getElementById(
-            "expenditureAmount"
-        ).value =
-            expenditure.amount;
-
-
-        document.getElementById(
-            "expenditureDescription"
-        ).value =
-            expenditure.description;
+        $("expenditureDate").value =
+            item.expenditure_date || "";
 
     } else {
 
-        document.getElementById(
-            "expenditureFormTitle"
-        ).textContent =
+        $("expenditureFormTitle").textContent =
             "Add Expenditure";
 
+        $("expenditureForm").reset();
 
-        document
-            .getElementById(
-                "expenditureForm"
-            )
-            .reset();
-
-
-        document.getElementById(
-            "expenditureId"
-        ).value = "";
-
+        $("expenditureId").value = "";
     }
-
 }
 
 
 function closeExpenditureForm() {
 
-    document
-        .getElementById(
-            "expenditureFormContainer"
-        )
-        .classList.add("hidden");
-
-}
-
-
-/* =====================================================
-   SAVE EXPENDITURE
-===================================================== */
-
-document
-    .getElementById(
-        "expenditureForm"
-    )
-    .addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
-
-
-            const id =
-                document.getElementById(
-                    "expenditureId"
-                ).value;
-
-
-            const title =
-                document.getElementById(
-                    "expenditureTitle"
-                ).value.trim();
-
-
-            const amount =
-                Number(
-                    document.getElementById(
-                        "expenditureAmount"
-                    ).value
-                );
-
-
-            const description =
-                document.getElementById(
-                    "expenditureDescription"
-                ).value.trim();
-
-
-            if (
-                !title ||
-                amount <= 0 ||
-                !description
-            ) {
-
-                showToast(
-                    "Please enter valid expenditure information."
-                );
-
-                return;
-
-            }
-
-
-            if (id) {
-
-                const expenditure =
-                    expenditures.find(
-                        item =>
-                            Number(item.id)
-                            === Number(id)
-                    );
-
-
-                if (expenditure) {
-
-                    expenditure.title =
-                        title;
-
-                    expenditure.amount =
-                        amount;
-
-                    expenditure.description =
-                        description;
-
-                }
-
-                showToast(
-                    "Expenditure updated."
-                );
-
-            } else {
-
-                expenditures.push({
-
-                    id: generateId(
-                        expenditures
-                    ),
-
-                    title: title,
-
-                    amount: amount,
-
-                    description:
-                        description,
-
-                    date:
-                        new Date().toISOString(),
-
-                    createdBy:
-                        currentUser.id
-
-                });
-
-
-                showToast(
-                    "Expenditure created."
-                );
-
-            }
-
-
-            saveData();
-
-            closeExpenditureForm();
-
-            renderExpenditures();
-
-            updateDashboard();
-
-        }
+    hideElement(
+        "expenditureFormContainer"
     );
 
+    $("expenditureForm").reset();
 
-/* =====================================================
-   RENDER EXPENDITURES
-===================================================== */
-
-function renderExpenditures() {
-
-    const body =
-        document.getElementById(
-            "expenditureTableBody"
-        );
-
-
-    if (
-        expenditures.length === 0
-    ) {
-
-        body.innerHTML = `
-            <tr>
-                <td colspan="6">
-                    No expenditure records found.
-                </td>
-            </tr>
-        `;
-
-        return;
-
-    }
-
-
-    body.innerHTML =
-        expenditures
-            .map(
-                expenditure => {
-
-                    let actions = "";
-
-
-                    if (
-                        currentUser.role
-                        === "admin"
-                        ||
-                        currentUser.role
-                        === "accountant"
-                    ) {
-
-                        actions = `
-
-                            <button
-                                class="action-btn edit-btn"
-                                onclick="editExpenditure(${expenditure.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                class="action-btn delete-btn"
-                                onclick="deleteExpenditure(${expenditure.id})"
-                            >
-                                Delete
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    return `
-
-                        <tr>
-
-                            <td>
-                                ${expenditure.id}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    expenditure.title
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    expenditure.description
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatMoney(
-                                    expenditure.amount
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatDate(
-                                    expenditure.date
-                                )}
-                            </td>
-
-                            <td>
-                                ${actions}
-                            </td>
-
-                        </tr>
-
-                    `;
-
-                }
-            )
-            .join("");
-
+    $("expenditureId").value = "";
 }
 
 
 function editExpenditure(id) {
 
-    const expenditure =
+    const item =
         expenditures.find(
-            item =>
-                Number(item.id)
-                === Number(id)
+            row => Number(row.id) === Number(id)
         );
 
+    if (!item) return;
 
-    if (expenditure) {
-
-        openExpenditureForm(
-            expenditure
-        );
-
-    }
-
+    openExpenditureForm(item);
 }
 
 
-function deleteExpenditure(id) {
+async function saveExpenditure(event) {
+
+    event.preventDefault();
+
+    try {
+
+        const id =
+            $("expenditureId").value;
+
+        const title =
+            $("expenditureTitle").value.trim();
+
+        const amount =
+            Number($("expenditureAmount").value);
+
+        const description =
+            $("expenditureDescription")
+                .value
+                .trim();
+
+        const expenditure_date =
+            $("expenditureDate").value || null;
+
+        const combinedDescription =
+            `Title: ${title}\n${description}`;
+
+        const body = {
+            amount,
+            description:
+                combinedDescription,
+            expenditure_date
+        };
+
+        if (id) {
+
+            await apiRequest(
+                `/expenditures/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "Expenditure updated successfully."
+            );
+
+        } else {
+
+            await apiRequest(
+                "/expenditures",
+                {
+                    method: "POST",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "Expenditure created successfully."
+            );
+        }
+
+        closeExpenditureForm();
+
+        await loadExpenditures();
+        await loadDashboard();
+
+    } catch (error) {
+
+        showToast(error.message);
+    }
+}
+
+
+async function deleteExpenditure(id) {
 
     if (
         !confirm(
             "Are you sure you want to delete this expenditure?"
         )
     ) {
-
         return;
-
     }
 
+    try {
 
-    expenditures =
-        expenditures.filter(
-            expenditure =>
-                Number(expenditure.id)
-                !== Number(id)
+        await apiRequest(
+            `/expenditures/${id}`,
+            {
+                method: "DELETE"
+            }
         );
 
+        showToast(
+            "Expenditure deleted successfully."
+        );
 
-    saveData();
+        await loadExpenditures();
+        await loadDashboard();
 
-    renderExpenditures();
+    } catch (error) {
 
-    updateDashboard();
-
-    showToast(
-        "Expenditure deleted."
-    );
-
+        showToast(error.message);
+    }
 }
 
 
-/* =====================================================
-   RECIPIENT REQUEST FORM
-===================================================== */
+/* =========================================================
+   RECIPIENT REQUESTS
+========================================================= */
 
-document
-    .getElementById(
-        "addRequestBtn"
-    )
-    .addEventListener(
-        "click",
-        function () {
+async function loadRequests() {
+
+    try {
+
+        const data =
+            await apiRequest("/requests");
+
+        requests =
+            data.requests || [];
+
+        renderRequests();
+
+    } catch (error) {
+
+        console.error(
+            "Request loading error:",
+            error
+        );
+    }
+}
+
+
+function renderRequests() {
+
+    const body =
+        $("requestTableBody");
+
+    if (!body) return;
+
+    if (requests.length === 0) {
+
+        body.innerHTML =
+            `<tr>
+                <td colspan="7">
+                    No requests found.
+                </td>
+            </tr>`;
+
+        return;
+    }
+
+    body.innerHTML =
+        requests.map(item => {
+
+            let actions = "";
 
             if (
-                currentUser.role !==
-                "recipient"
-                &&
-                currentUser.role !==
-                "admin"
+                currentUser.role === "Recipient" &&
+                Number(item.recipient_id) ===
+                    Number(currentUser.id) &&
+                item.status === "Pending"
             ) {
 
-                showToast(
-                    "Only recipients can create requests."
-                );
+                actions += `
+                    <button
+                        class="action-button edit-button"
+                        onclick="editRequest(${item.id})"
+                    >
+                        Edit
+                    </button>
 
-                return;
-
+                    <button
+                        class="action-button delete-button"
+                        onclick="deleteRequest(${item.id})"
+                    >
+                        Delete
+                    </button>
+                `;
             }
 
+            if (
+                currentUser.role === "Admin" ||
+                currentUser.role ===
+                    "University Supervisor"
+            ) {
 
-            openRequestForm();
+                if (item.status === "Pending") {
 
-        }
+                    actions += `
+                        <button
+                            class="action-button approve-button"
+                            onclick="changeRequestStatus(${item.id}, 'Approved')"
+                        >
+                            Approve
+                        </button>
+
+                        <button
+                            class="action-button reject-button"
+                            onclick="changeRequestStatus(${item.id}, 'Rejected')"
+                        >
+                            Reject
+                        </button>
+                    `;
+                }
+            }
+
+            return `
+                <tr>
+
+                    <td>
+                        ${item.id}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.recipient_name
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.title
+                        )}
+                    </td>
+
+                    <td>
+                        ${formatMoney(
+                            item.amount_requested
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.status
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.created_at
+                        )}
+                    </td>
+
+                    <td>
+                        ${actions}
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
+
+
+function openRequestForm(item = null) {
+
+    showElement(
+        "requestFormContainer"
     );
 
+    if (item) {
 
-document
-    .getElementById(
-        "cancelRequest"
-    )
-    .addEventListener(
-        "click",
-        function () {
+        $("requestId").value =
+            item.id;
 
-            closeRequestForm();
+        $("requestRecipient").value =
+            item.title || "";
 
-        }
-    );
+        $("requestAmount").value =
+            item.amount_requested;
 
-
-function openRequestForm(
-    request = null
-) {
-
-    document
-        .getElementById(
-            "requestFormContainer"
-        )
-        .classList.remove(
-            "hidden"
-        );
-
-
-    if (request) {
-
-        document.getElementById(
-            "requestId"
-        ).value =
-            request.id;
-
-
-        document.getElementById(
-            "requestRecipient"
-        ).value =
-            request.recipient;
-
-
-        document.getElementById(
-            "requestAmount"
-        ).value =
-            request.amount;
-
-
-        document.getElementById(
-            "requestReason"
-        ).value =
-            request.reason;
+        $("requestReason").value =
+            item.description || "";
 
     } else {
 
-        document
-            .getElementById(
-                "requestForm"
-            )
-            .reset();
+        $("requestForm").reset();
 
-
-        document.getElementById(
-            "requestId"
-        ).value = "";
-
+        $("requestId").value = "";
     }
-
 }
 
 
 function closeRequestForm() {
 
-    document
-        .getElementById(
-            "requestFormContainer"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-}
-
-
-/* =====================================================
-   SAVE REQUEST
-===================================================== */
-
-document
-    .getElementById(
-        "requestForm"
-    )
-    .addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
-
-
-            const id =
-                document.getElementById(
-                    "requestId"
-                ).value;
-
-
-            const recipient =
-                document.getElementById(
-                    "requestRecipient"
-                ).value.trim();
-
-
-            const amount =
-                Number(
-                    document.getElementById(
-                        "requestAmount"
-                    ).value
-                );
-
-
-            const reason =
-                document.getElementById(
-                    "requestReason"
-                ).value.trim();
-
-
-            if (
-                !recipient ||
-                amount <= 0 ||
-                !reason
-            ) {
-
-                showToast(
-                    "Please enter valid request information."
-                );
-
-                return;
-
-            }
-
-
-            if (id) {
-
-                const request =
-                    requests.find(
-                        item =>
-                            Number(item.id)
-                            === Number(id)
-                    );
-
-
-                if (request) {
-
-                    request.recipient =
-                        recipient;
-
-                    request.amount =
-                        amount;
-
-                    request.reason =
-                        reason;
-
-                }
-
-                showToast(
-                    "Request updated."
-                );
-
-            } else {
-
-                requests.push({
-
-                    id: generateId(
-                        requests
-                    ),
-
-                    recipient:
-                        recipient,
-
-                    amount:
-                        amount,
-
-                    reason:
-                        reason,
-
-                    status:
-                        "Pending",
-
-                    result:
-                        "Waiting for review",
-
-                    date:
-                        new Date().toISOString(),
-
-                    createdBy:
-                        currentUser.id
-
-                });
-
-
-                showToast(
-                    "Request submitted."
-                );
-
-            }
-
-
-            saveData();
-
-            closeRequestForm();
-
-            renderRequests();
-
-            updateDashboard();
-
-        }
+    hideElement(
+        "requestFormContainer"
     );
 
+    $("requestForm").reset();
 
-/* =====================================================
-   RENDER REQUESTS
-===================================================== */
-
-function renderRequests() {
-
-    const body =
-        document.getElementById(
-            "requestTableBody"
-        );
-
-
-    let visibleRequests =
-        requests;
-
-
-    if (
-        currentUser.role ===
-        "recipient"
-    ) {
-
-        visibleRequests =
-            requests.filter(
-                request =>
-                    request.createdBy
-                    === currentUser.id
-            );
-
-    }
-
-
-    if (
-        visibleRequests.length === 0
-    ) {
-
-        body.innerHTML = `
-            <tr>
-                <td colspan="8">
-                    No recipient requests found.
-                </td>
-            </tr>
-        `;
-
-        return;
-
-    }
-
-
-    body.innerHTML =
-        visibleRequests
-            .map(
-                request => {
-
-                    let actions = "";
-
-
-                    if (
-                        currentUser.role
-                        === "admin"
-                    ) {
-
-                        actions = `
-
-                            <button
-                                class="action-btn approve-btn"
-                                onclick="approveRequest(${request.id})"
-                            >
-                                Approve
-                            </button>
-
-                            <button
-                                class="action-btn reject-btn"
-                                onclick="rejectRequest(${request.id})"
-                            >
-                                Reject
-                            </button>
-
-                            <button
-                                class="action-btn delete-btn"
-                                onclick="deleteRequest(${request.id})"
-                            >
-                                Delete
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    if (
-                        currentUser.role
-                        === "recipient"
-                        &&
-                        request.status
-                        === "Pending"
-                    ) {
-
-                        actions = `
-
-                            <button
-                                class="action-btn edit-btn"
-                                onclick="editRequest(${request.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                class="action-btn delete-btn"
-                                onclick="deleteRequest(${request.id})"
-                            >
-                                Delete
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    return `
-
-                        <tr>
-
-                            <td>
-                                ${request.id}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    request.recipient
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatMoney(
-                                    request.amount
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    request.reason
-                                )}
-                            </td>
-
-                            <td>
-
-                                <span
-                                    class="status ${request.status.toLowerCase()}"
-                                >
-                                    ${request.status}
-                                </span>
-
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    request.result
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatDate(
-                                    request.date
-                                )}
-                            </td>
-
-                            <td>
-                                ${actions}
-                            </td>
-
-                        </tr>
-
-                    `;
-
-                }
-            )
-            .join("");
-
+    $("requestId").value = "";
 }
 
 
 function editRequest(id) {
 
-    const request =
+    const item =
         requests.find(
-            item =>
-                Number(item.id)
-                === Number(id)
+            row => Number(row.id) === Number(id)
         );
 
+    if (!item) return;
 
-    if (request) {
-
-        openRequestForm(
-            request
-        );
-
-    }
-
+    openRequestForm(item);
 }
 
 
-function approveRequest(id) {
+async function saveRequest(event) {
 
-    const request =
-        requests.find(
-            item =>
-                Number(item.id)
-                === Number(id)
-        );
+    event.preventDefault();
 
+    try {
 
-    if (!request) {
-        return;
+        const id =
+            $("requestId").value;
+
+        const title =
+            $("requestRecipient")
+                .value
+                .trim();
+
+        const amount_requested =
+            Number(
+                $("requestAmount").value
+            );
+
+        const description =
+            $("requestReason")
+                .value
+                .trim();
+
+        const body = {
+            title,
+            amount_requested,
+            description
+        };
+
+        if (id) {
+
+            await apiRequest(
+                `/requests/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "Request updated successfully."
+            );
+
+        } else {
+
+            await apiRequest(
+                "/requests",
+                {
+                    method: "POST",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "Request submitted successfully."
+            );
+        }
+
+        closeRequestForm();
+
+        await loadRequests();
+        await loadDashboard();
+
+    } catch (error) {
+
+        showToast(error.message);
     }
-
-
-    request.status =
-        "Approved";
-
-
-    request.result =
-        "Request approved by Admin.";
-
-
-    saveData();
-
-    renderRequests();
-
-    updateDashboard();
-
-    showToast(
-        "Request approved."
-    );
-
 }
 
 
-function rejectRequest(id) {
-
-    const request =
-        requests.find(
-            item =>
-                Number(item.id)
-                === Number(id)
-        );
-
-
-    if (!request) {
-        return;
-    }
-
-
-    request.status =
-        "Rejected";
-
-
-    request.result =
-        "Request rejected by Admin.";
-
-
-    saveData();
-
-    renderRequests();
-
-    updateDashboard();
-
-    showToast(
-        "Request rejected."
-    );
-
-}
-
-
-function deleteRequest(id) {
+async function deleteRequest(id) {
 
     if (
         !confirm(
             "Are you sure you want to delete this request?"
         )
     ) {
-
         return;
-
     }
 
+    try {
 
-    requests =
-        requests.filter(
-            request =>
-                Number(request.id)
-                !== Number(id)
+        await apiRequest(
+            `/requests/${id}`,
+            {
+                method: "DELETE"
+            }
         );
 
+        showToast(
+            "Request deleted successfully."
+        );
 
-    saveData();
+        await loadRequests();
+        await loadDashboard();
 
-    renderRequests();
+    } catch (error) {
 
-    updateDashboard();
-
-    showToast(
-        "Request deleted."
-    );
-
+        showToast(error.message);
+    }
 }
 
 
-/* =====================================================
-   CONTACT FORM
-===================================================== */
+async function changeRequestStatus(
+    id,
+    status
+) {
 
-document
-    .getElementById(
-        "addContactBtn"
-    )
-    .addEventListener(
-        "click",
-        function () {
+    const action =
+        status === "Approved"
+            ? "approve"
+            : "reject";
 
-            if (
-                currentUser.role !==
-                "supervisor"
-            ) {
+    if (
+        !confirm(
+            `Are you sure you want to ${action} this request?`
+        )
+    ) {
+        return;
+    }
 
-                showToast(
-                    "Only University Supervisor can create messages."
-                );
+    try {
 
-                return;
-
+        await apiRequest(
+            `/requests/${id}/status`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    status
+                })
             }
+        );
+
+        showToast(
+            `Request ${status.toLowerCase()} successfully.`
+        );
+
+        await loadRequests();
+        await loadDashboard();
+
+    } catch (error) {
+
+        showToast(error.message);
+    }
+}
 
 
-            document
-                .getElementById(
-                    "contactFormContainer"
-                )
-                .classList.remove(
-                    "hidden"
-                );
+/* =========================================================
+   CONTACTS
+========================================================= */
 
-        }
-    );
+async function loadContacts() {
 
+    try {
 
-document
-    .getElementById(
-        "cancelContact"
-    )
-    .addEventListener(
-        "click",
-        function () {
+        const data =
+            await apiRequest("/contacts");
 
-            document
-                .getElementById(
-                    "contactFormContainer"
-                )
-                .classList.add(
-                    "hidden"
-                );
+        contacts =
+            data.contacts || [];
 
-        }
-    );
+        renderContacts();
 
+    } catch (error) {
 
-/* =====================================================
-   SAVE CONTACT
-===================================================== */
+        console.error(
+            "Contact loading error:",
+            error
+        );
+    }
+}
 
-document
-    .getElementById(
-        "contactForm"
-    )
-    .addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
-
-
-            const recipient =
-                document.getElementById(
-                    "contactRecipient"
-                ).value;
-
-
-            const subject =
-                document.getElementById(
-                    "contactSubject"
-                ).value.trim();
-
-
-            const message =
-                document.getElementById(
-                    "contactMessage"
-                ).value.trim();
-
-
-            contacts.push({
-
-                id: generateId(
-                    contacts
-                ),
-
-                sender:
-                    currentUser.name,
-
-                senderId:
-                    currentUser.id,
-
-                recipient:
-                    recipient,
-
-                subject:
-                    subject,
-
-                message:
-                    message,
-
-                reply:
-                    "",
-
-                date:
-                    new Date().toISOString()
-
-            });
-
-
-            saveData();
-
-            document
-                .getElementById(
-                    "contactForm"
-                )
-                .reset();
-
-
-            document
-                .getElementById(
-                    "contactFormContainer"
-                )
-                .classList.add(
-                    "hidden"
-                );
-
-
-            renderContacts();
-
-            showToast(
-                "Message sent successfully."
-            );
-
-        }
-    );
-
-
-/* =====================================================
-   RENDER CONTACTS
-===================================================== */
 
 function renderContacts() {
 
     const body =
-        document.getElementById(
-            "contactTableBody"
-        );
+        $("contactTableBody");
 
+    if (!body) return;
 
-    let visibleContacts =
-        contacts;
+    if (contacts.length === 0) {
 
-
-    if (
-        currentUser.role ===
-        "supervisor"
-    ) {
-
-        visibleContacts =
-            contacts.filter(
-                contact =>
-                    contact.senderId
-                    === currentUser.id
-            );
-
-    }
-
-
-    if (
-        visibleContacts.length === 0
-    ) {
-
-        body.innerHTML = `
-            <tr>
-                <td colspan="8">
+        body.innerHTML =
+            `<tr>
+                <td colspan="7">
                     No messages found.
                 </td>
-            </tr>
-        `;
+            </tr>`;
 
         return;
-
     }
-
 
     body.innerHTML =
-        visibleContacts
-            .map(
-                contact => {
+        contacts.map(item => {
 
-                    let actions = "";
-
-
-                    if (
-                        currentUser.role
-                        === "admin"
-                        &&
-                        contact.recipient
-                        === "Admin"
-                    ) {
-
-                        actions = `
-
-                            <button
-                                class="action-btn edit-btn"
-                                onclick="replyContact(${contact.id})"
-                            >
-                                Reply
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    if (
-                        currentUser.role
-                        === "accountant"
-                        &&
-                        contact.recipient
-                        === "Accountant"
-                    ) {
-
-                        actions = `
-
-                            <button
-                                class="action-btn edit-btn"
-                                onclick="replyContact(${contact.id})"
-                            >
-                                Reply
-                            </button>
-
-                        `;
-
-                    }
-
-
-                    return `
-
-                        <tr>
-
-                            <td>
-                                ${contact.id}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    contact.sender
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    contact.recipient
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    contact.subject
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    contact.message
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    contact.reply
-                                    || "No reply yet"
-                                )}
-                            </td>
-
-                            <td>
-                                ${formatDate(
-                                    contact.date
-                                )}
-                            </td>
-
-                            <td>
-                                ${actions}
-                            </td>
-
-                        </tr>
-
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-/* =====================================================
-   REPLY TO CONTACT
-===================================================== */
-
-function replyContact(id) {
-
-    const contact =
-        contacts.find(
-            item =>
-                Number(item.id)
-                === Number(id)
-        );
-
-
-    if (!contact) {
-        return;
-    }
-
-
-    const reply =
-        prompt(
-            "Enter your reply:",
-            contact.reply || ""
-        );
-
-
-    if (reply === null) {
-        return;
-    }
-
-
-    contact.reply =
-        reply.trim();
-
-
-    saveData();
-
-    renderContacts();
-
-    showToast(
-        "Reply saved."
-    );
-
-}
-
-
-/* =====================================================
-   USER MANAGEMENT
-===================================================== */
-
-document
-    .getElementById(
-        "addUserBtn"
-    )
-    .addEventListener(
-        "click",
-        function () {
+            let actions = "";
 
             if (
-                currentUser.role !==
-                "admin"
+                [
+                    "Admin",
+                    "Accountant",
+                    "University Supervisor"
+                ].includes(currentUser.role)
             ) {
 
-                showToast(
-                    "Only Admin can manage users."
-                );
-
-                return;
-
+                actions = `
+                    <button
+                        class="action-button reply-button"
+                        onclick="replyToContact(${item.id})"
+                    >
+                        Reply
+                    </button>
+                `;
             }
 
+            return `
+                <tr>
 
-            openUserForm();
+                    <td>
+                        ${item.id}
+                    </td>
 
-        }
+                    <td>
+                        ${escapeHTML(
+                            item.sender_name
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.subject
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.message
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.reply || "No reply"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            item.created_at
+                        )}
+                    </td>
+
+                    <td>
+                        ${actions}
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
+
+
+function openContactForm() {
+
+    showElement(
+        "contactFormContainer"
     );
 
+    $("contactForm").reset();
+}
 
-document
-    .getElementById(
-        "cancelUser"
-    )
-    .addEventListener(
-        "click",
-        function () {
 
-            closeUserForm();
+function closeContactForm() {
 
-        }
+    hideElement(
+        "contactFormContainer"
     );
+
+    $("contactForm").reset();
+}
+
+
+async function saveContact(event) {
+
+    event.preventDefault();
+
+    try {
+
+        const subject =
+            $("contactSubject")
+                .value
+                .trim();
+
+        const message =
+            $("contactMessage")
+                .value
+                .trim();
+
+        await apiRequest(
+            "/contacts",
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    subject,
+                    message
+                })
+            }
+        );
+
+        closeContactForm();
+
+        showToast(
+            "Message sent successfully."
+        );
+
+        await loadContacts();
+
+    } catch (error) {
+
+        showToast(error.message);
+    }
+}
+
+
+async function replyToContact(id) {
+
+    const reply =
+        prompt("Enter your reply:");
+
+    if (!reply || !reply.trim()) {
+        return;
+    }
+
+    try {
+
+        await apiRequest(
+            `/contacts/${id}/reply`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    reply: reply.trim()
+                })
+            }
+        );
+
+        showToast(
+            "Reply sent successfully."
+        );
+
+        await loadContacts();
+
+    } catch (error) {
+
+        showToast(error.message);
+    }
+}
+
+
+/* =========================================================
+   USERS
+========================================================= */
+
+async function loadUsers() {
+
+    if (
+        !currentUser ||
+        currentUser.role !== "Admin"
+    ) {
+        return;
+    }
+
+    try {
+
+        const data =
+            await apiRequest("/users");
+
+        users =
+            data.users || [];
+
+        renderUsers();
+
+    } catch (error) {
+
+        console.error(
+            "User loading error:",
+            error
+        );
+    }
+}
+
+
+function renderUsers() {
+
+    const body =
+        $("usersTableBody");
+
+    if (!body) return;
+
+    if (users.length === 0) {
+
+        body.innerHTML =
+            `<tr>
+                <td colspan="6">
+                    No users found.
+                </td>
+            </tr>`;
+
+        return;
+    }
+
+    body.innerHTML =
+        users.map(user => {
+
+            return `
+                <tr>
+
+                    <td>
+                        ${user.id}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            user.full_name
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            user.email
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            user.role
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHTML(
+                            user.created_at
+                        )}
+                    </td>
+
+                    <td>
+
+                        <button
+                            class="action-button edit-button"
+                            onclick="editUser(${user.id})"
+                        >
+                            Edit
+                        </button>
+
+                        <button
+                            class="action-button delete-button"
+                            onclick="deleteUser(${user.id})"
+                        >
+                            Delete
+                        </button>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
 
 
 function openUserForm(user = null) {
 
-    document
-        .getElementById(
-            "userFormContainer"
-        )
-        .classList.remove(
-            "hidden"
-        );
-
+    showElement(
+        "userFormContainer"
+    );
 
     if (user) {
 
-        document.getElementById(
-            "userFormTitle"
-        ).textContent =
-            "Update User";
+        $("userFormTitle").textContent =
+            "Edit User";
 
-
-        document.getElementById(
-            "userId"
-        ).value =
+        $("userId").value =
             user.id;
 
+        $("userName").value =
+            user.full_name;
 
-        document.getElementById(
-            "userName"
-        ).value =
-            user.name;
-
-
-        document.getElementById(
-            "userEmail"
-        ).value =
+        $("userEmail").value =
             user.email;
 
+        $("userPassword").value = "";
 
-        document.getElementById(
-            "userPassword"
-        ).value = "";
-
-
-        document.getElementById(
-            "userRole"
-        ).value =
+        $("userRole").value =
             user.role;
+
+        $("userPassword").placeholder =
+            "Leave empty to keep current password";
 
     } else {
 
-        document.getElementById(
-            "userFormTitle"
-        ).textContent =
+        $("userFormTitle").textContent =
             "Add User";
 
+        $("userForm").reset();
 
-        document
-            .getElementById(
-                "userForm"
-            )
-            .reset();
+        $("userId").value = "";
 
-
-        document.getElementById(
-            "userId"
-        ).value = "";
-
+        $("userPassword").placeholder =
+            "Required for new users";
     }
-
 }
 
 
 function closeUserForm() {
 
-    document
-        .getElementById(
-            "userFormContainer"
-        )
-        .classList.add(
-            "hidden"
-        );
-
-}
-
-
-/* =====================================================
-   SAVE USER
-===================================================== */
-
-document
-    .getElementById(
-        "userForm"
-    )
-    .addEventListener(
-        "submit",
-        function (event) {
-
-            event.preventDefault();
-
-
-            const id =
-                document.getElementById(
-                    "userId"
-                ).value;
-
-
-            const name =
-                document.getElementById(
-                    "userName"
-                ).value.trim();
-
-
-            const email =
-                document.getElementById(
-                    "userEmail"
-                ).value
-                .trim()
-                .toLowerCase();
-
-
-            const password =
-                document.getElementById(
-                    "userPassword"
-                ).value;
-
-
-            const role =
-                document.getElementById(
-                    "userRole"
-                ).value;
-
-
-            if (
-                !name ||
-                !email ||
-                !role
-            ) {
-
-                showToast(
-                    "Please fill all required fields."
-                );
-
-                return;
-
-            }
-
-
-            const duplicate =
-                users.find(
-                    user =>
-                        user.email
-                        === email
-                        &&
-                        Number(user.id)
-                        !== Number(id)
-                );
-
-
-            if (duplicate) {
-
-                showToast(
-                    "This email is already used."
-                );
-
-                return;
-
-            }
-
-
-            if (id) {
-
-                const user =
-                    users.find(
-                        item =>
-                            Number(item.id)
-                            === Number(id)
-                    );
-
-
-                if (user) {
-
-                    user.name =
-                        name;
-
-                    user.email =
-                        email;
-
-                    user.role =
-                        role;
-
-
-                    if (password) {
-
-                        user.password =
-                            password;
-
-                    }
-
-                }
-
-                showToast(
-                    "User updated."
-                );
-
-            } else {
-
-                if (!password) {
-
-                    showToast(
-                        "Password is required for a new user."
-                    );
-
-                    return;
-
-                }
-
-
-                users.push({
-
-                    id:
-                        generateId(
-                            users
-                        ),
-
-                    name:
-                        name,
-
-                    email:
-                        email,
-
-                    password:
-                        password,
-
-                    role:
-                        role
-
-                });
-
-
-                showToast(
-                    "User created."
-                );
-
-            }
-
-
-            saveData();
-
-            closeUserForm();
-
-            renderUsers();
-
-        }
+    hideElement(
+        "userFormContainer"
     );
 
+    $("userForm").reset();
 
-/* =====================================================
-   RENDER USERS
-===================================================== */
-
-function renderUsers() {
-
-    const body =
-        document.getElementById(
-            "usersTableBody"
-        );
-
-
-    if (
-        currentUser.role !==
-        "admin"
-    ) {
-
-        body.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    Access denied.
-                </td>
-            </tr>
-        `;
-
-        return;
-
-    }
-
-
-    body.innerHTML =
-        users
-            .map(
-                user => `
-
-                    <tr>
-
-                        <td>
-                            ${user.id}
-                        </td>
-
-                        <td>
-                            ${escapeHTML(
-                                user.name
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHTML(
-                                user.email
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHTML(
-                                user.role
-                            )}
-                        </td>
-
-                        <td>
-
-                            <button
-                                class="action-btn edit-btn"
-                                onclick="editUser(${user.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                class="action-btn delete-btn"
-                                onclick="deleteUser(${user.id})"
-                            >
-                                Delete
-                            </button>
-
-                        </td>
-
-                    </tr>
-
-                `
-            )
-            .join("");
-
+    $("userId").value = "";
 }
 
 
@@ -2953,28 +1986,101 @@ function editUser(id) {
 
     const user =
         users.find(
-            item =>
-                Number(item.id)
-                === Number(id)
+            item => Number(item.id) === Number(id)
         );
 
+    if (!user) return;
 
-    if (user) {
-
-        openUserForm(
-            user
-        );
-
-    }
-
+    openUserForm(user);
 }
 
 
-function deleteUser(id) {
+async function saveUser(event) {
+
+    event.preventDefault();
+
+    try {
+
+        const id =
+            $("userId").value;
+
+        const full_name =
+            $("userName")
+                .value
+                .trim();
+
+        const email =
+            $("userEmail")
+                .value
+                .trim();
+
+        const password =
+            $("userPassword").value;
+
+        const role =
+            $("userRole").value;
+
+        if (!id && !password) {
+
+            throw new Error(
+                "Password is required for a new user."
+            );
+        }
+
+        const body = {
+            full_name,
+            email,
+            role
+        };
+
+        if (password) {
+            body.password = password;
+        }
+
+        if (id) {
+
+            await apiRequest(
+                `/users/${id}`,
+                {
+                    method: "PUT",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "User updated successfully."
+            );
+
+        } else {
+
+            await apiRequest(
+                "/users",
+                {
+                    method: "POST",
+                    body: JSON.stringify(body)
+                }
+            );
+
+            showToast(
+                "User created successfully."
+            );
+        }
+
+        closeUserForm();
+
+        await loadUsers();
+
+    } catch (error) {
+
+        showToast(error.message);
+    }
+}
+
+
+async function deleteUser(id) {
 
     if (
-        Number(id)
-        === Number(currentUser.id)
+        Number(id) === Number(currentUser.id)
     ) {
 
         showToast(
@@ -2982,259 +2088,202 @@ function deleteUser(id) {
         );
 
         return;
-
     }
-
 
     if (
         !confirm(
             "Are you sure you want to delete this user?"
         )
     ) {
-
         return;
-
     }
 
+    try {
 
-    users =
-        users.filter(
-            user =>
-                Number(user.id)
-                !== Number(id)
+        await apiRequest(
+            `/users/${id}`,
+            {
+                method: "DELETE"
+            }
         );
 
+        showToast(
+            "User deleted successfully."
+        );
 
-    saveData();
+        await loadUsers();
 
-    renderUsers();
+    } catch (error) {
 
-    showToast(
-        "User deleted."
-    );
-
+        showToast(error.message);
+    }
 }
 
 
-/* =====================================================
-   EXCEL EXPORT
-===================================================== */
+/* =========================================================
+   REFRESH EVERYTHING
+========================================================= */
+
+async function refreshAll() {
+
+    await loadDashboard();
+
+    await Promise.all([
+        loadDonations(),
+        loadExpenditures(),
+        loadRequests(),
+        loadContacts(),
+        loadUsers()
+    ]);
+}
+
+
+/* =========================================================
+   EXPORT FUNCTIONS
+========================================================= */
 
 function exportTableToExcel(
     tableId,
-    fileName
+    filename
 ) {
 
     if (
-        typeof XLSX ===
-        "undefined"
+        typeof XLSX === "undefined"
     ) {
 
         showToast(
-            "Excel library could not be loaded."
+            "Excel library is not available."
         );
 
         return;
-
     }
 
-
     const table =
-        document.getElementById(
-            tableId
-        );
+        $(tableId);
 
+    if (!table) return;
 
     const workbook =
         XLSX.utils.table_to_book(
             table,
-            {
-                sheet: "Data"
-            }
+            { sheet: "Data" }
         );
-
 
     XLSX.writeFile(
         workbook,
-        fileName + ".xlsx"
+        filename
     );
-
-
-    showToast(
-        "Excel file generated."
-    );
-
 }
 
 
-/* =====================================================
-   PDF EXPORT
-===================================================== */
-
 function exportTableToPDF(
     tableId,
-    title
+    title,
+    filename
 ) {
 
     if (
-        !window.jspdf
+        typeof window.jspdf === "undefined"
     ) {
 
         showToast(
-            "PDF library could not be loaded."
+            "PDF library is not available."
         );
 
         return;
-
     }
 
+    const table =
+        $(tableId);
+
+    if (!table) return;
 
     const {
         jsPDF
     } = window.jspdf;
 
+    const doc =
+        new jsPDF("landscape");
 
-    const pdf =
-        new jsPDF(
-            "landscape"
-        );
-
-
-    pdf.setFontSize(16);
-
-    pdf.text(
+    doc.text(
         title,
         14,
         15
     );
 
+    const rows = [];
 
-    pdf.setFontSize(10);
+    const headers =
+        table.querySelectorAll(
+            "thead th"
+        );
 
-    pdf.text(
-        "MUST Charity & Expenditure Management System",
-        14,
-        22
-    );
-
-
-    pdf.autoTable({
-
-        html:
-            "#" + tableId,
-
-        startY:
-            28,
-
-        styles: {
-            fontSize: 8
-        },
-
-        headStyles: {
-            fillColor: [23, 74, 126]
-        }
-
-    });
-
-
-    pdf.save(
-        title
-            .toLowerCase()
-            .replace(
-                /\s+/g,
-                "-"
-            ) + ".pdf"
-    );
-
-
-    showToast(
-        "PDF file generated."
-    );
-
-}
-
-
-/* =====================================================
-   INITIALIZE APPLICATION
-===================================================== */
-
-function initializeApplication() {
-
-    /*
-       Make sure default users are stored.
-    */
-
-    if (
-        !localStorage.getItem(
-            "must_users"
-        )
-    ) {
-
-        saveData();
-
-    }
-
-
-    /*
-       If a user was already logged in,
-       open the application.
-    */
-
-    if (currentUser) {
-
-        /*
-           Verify that the stored user
-           still exists.
-        */
-
-        const validUser =
-            users.find(
-                user =>
-                    Number(user.id)
-                    === Number(currentUser.id)
+    const headerValues =
+        Array.from(headers)
+            .map(th =>
+                th.textContent.trim()
             );
 
+    table.querySelectorAll(
+        "tbody tr"
+    ).forEach(tr => {
 
-        if (validUser) {
+        const cells =
+            tr.querySelectorAll("td");
 
-            currentUser =
-                validUser;
+        if (!cells.length) return;
 
-            showApplication();
+        rows.push(
+            Array.from(cells)
+                .map(td =>
+                    td.textContent.trim()
+                )
+        );
+    });
 
-            return;
+    if (
+        typeof doc.autoTable === "function"
+    ) {
 
-        }
+        doc.autoTable({
+            head: [headerValues],
+            body: rows,
+            startY: 22
+        });
 
+    } else {
+
+        let y = 30;
+
+        rows.forEach(row => {
+
+            doc.text(
+                row.join(" | "),
+                10,
+                y
+            );
+
+            y += 8;
+
+            if (y > 190) {
+
+                doc.addPage();
+
+                y = 20;
+            }
+        });
     }
 
-
-    /*
-       Otherwise show login.
-    */
-
-    document
-        .getElementById(
-            "authSection"
-        )
-        .classList.remove(
-            "hidden"
-        );
-
-
-    document
-        .getElementById(
-            "appSection"
-        )
-        .classList.add(
-            "hidden"
-        );
-
+    doc.save(filename);
 }
 
 
-/* =====================================================
-   START APPLICATION
-===================================================== */
+/* =========================================================
+   EVENT LISTENERS
+========================================================= */
 
-initializeApplication();
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        /*
