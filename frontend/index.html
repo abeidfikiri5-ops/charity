@@ -3,142 +3,184 @@
 <head>
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <title>MUST Charity & Expenditure Management System</title>
+    <title>
+        MUST Charity & Expenditure Management System
+    </title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 </head>
 
 <body>
 
-    <!-- ==============================
-         LOGIN / REGISTER SECTION
-    =============================== -->
+    <!-- =========================
+         LOGIN / REGISTER
+    ========================== -->
+
     <section id="authSection" class="auth-section">
 
         <div class="auth-card">
 
-            <div class="logo-area">
-                <h1>MUST Charity</h1>
-                <p>Charity & Expenditure Management System</p>
-            </div>
+            <h1>
+                MUST Charity Management System
+            </h1>
+
+            <p class="subtitle">
+                Charity and Expenditure Management
+            </p>
 
             <div class="auth-tabs">
-                <button id="loginTab" class="auth-tab active">
+
+                <button
+                    id="loginTab"
+                    class="tab-button active"
+                    type="button"
+                >
                     Login
                 </button>
 
-                <button id="registerTab" class="auth-tab">
+                <button
+                    id="registerTab"
+                    class="tab-button"
+                    type="button"
+                >
                     Register
                 </button>
+
             </div>
 
+
             <!-- LOGIN -->
+
             <form id="loginForm">
 
-                <div class="form-group">
-                    <label>Email</label>
+                <label for="loginEmail">
+                    Email
+                </label>
 
-                    <input
-                        type="email"
-                        id="loginEmail"
-                        placeholder="Enter email"
-                        required
-                    >
-                </div>
+                <input
+                    type="email"
+                    id="loginEmail"
+                    placeholder="Enter your email"
+                    required
+                >
 
-                <div class="form-group">
-                    <label>Password</label>
 
-                    <input
-                        type="password"
-                        id="loginPassword"
-                        placeholder="Enter password"
-                        required
-                    >
-                </div>
+                <label for="loginPassword">
+                    Password
+                </label>
 
-                <button type="submit" class="btn primary-btn full-btn">
+                <input
+                    type="password"
+                    id="loginPassword"
+                    placeholder="Enter your password"
+                    required
+                >
+
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
                     Login
                 </button>
 
-                <p id="loginMessage" class="message"></p>
+                <p
+                    id="loginMessage"
+                    class="message"
+                ></p>
 
             </form>
 
 
             <!-- REGISTER -->
-            <form id="registerForm" class="hidden">
 
-                <div class="form-group">
-                    <label>Full Name</label>
+            <form
+                id="registerForm"
+                class="hidden"
+            >
 
-                    <input
-                        type="text"
-                        id="registerName"
-                        placeholder="Enter full name"
-                        required
-                    >
-                </div>
+                <label for="registerName">
+                    Full Name
+                </label>
 
-                <div class="form-group">
-                    <label>Email</label>
+                <input
+                    type="text"
+                    id="registerName"
+                    placeholder="Enter your full name"
+                    required
+                >
 
-                    <input
-                        type="email"
-                        id="registerEmail"
-                        placeholder="Enter email"
-                        required
-                    >
-                </div>
 
-                <div class="form-group">
-                    <label>Password</label>
+                <label for="registerEmail">
+                    Email
+                </label>
 
-                    <input
-                        type="password"
-                        id="registerPassword"
-                        placeholder="Minimum 6 characters"
-                        minlength="6"
-                        required
-                    >
-                </div>
+                <input
+                    type="email"
+                    id="registerEmail"
+                    placeholder="Enter your email"
+                    required
+                >
 
-                <div class="form-group">
-                    <label>User Type</label>
 
-                    <select id="registerRole" required>
+                <label for="registerPassword">
+                    Password
+                </label>
 
-                        <option value="">
-                            Select user type
-                        </option>
+                <input
+                    type="password"
+                    id="registerPassword"
+                    placeholder="At least 6 characters"
+                    minlength="6"
+                    required
+                >
 
-                        <option value="donor">
-                            Donor
-                        </option>
 
-                        <option value="recipient">
-                            Recipient
-                        </option>
+                <label for="registerRole">
+                    Role
+                </label>
 
-                        <option value="supervisor">
-                            University Supervisor
-                        </option>
+                <select
+                    id="registerRole"
+                    required
+                >
+                    <option value="">
+                        Select role
+                    </option>
 
-                        <option value="accountant">
-                            Accountant
-                        </option>
+                    <option value="Donor">
+                        Donor
+                    </option>
 
-                    </select>
+                    <option value="Recipient">
+                        Recipient
+                    </option>
 
-                </div>
+                    <option value="University Supervisor">
+                        University Supervisor
+                    </option>
+                </select>
 
-                <button type="submit" class="btn primary-btn full-btn">
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
                     Create Account
                 </button>
 
-                <p id="registerMessage" class="message"></p>
+                <p
+                    id="registerMessage"
+                    class="message"
+                ></p>
 
             </form>
 
@@ -147,37 +189,43 @@
     </section>
 
 
-    <!-- ==============================
+    <!-- =========================
          MAIN APPLICATION
-    =============================== -->
+    ========================== -->
 
-    <section id="appSection" class="hidden">
+    <section
+        id="appSection"
+        class="app-section hidden"
+    >
 
         <!-- HEADER -->
 
-        <header class="top-header">
+        <header class="topbar">
 
-            <div class="header-left">
+            <div>
+                <h1>
+                    MUST Charity Management System
+                </h1>
 
-                <h2>
-                    MUST Charity & Expenditure
-                </h2>
-
-                <span id="currentRole" class="role-badge">
-                    User
-                </span>
-
+                <p>
+                    Welcome,
+                    <strong id="currentUserName">
+                        User
+                    </strong>
+                </p>
             </div>
 
-            <div class="header-right">
 
-                <span id="currentUserName">
-                    User
+            <div class="user-area">
+
+                <span id="currentRole">
+                    Role
                 </span>
 
                 <button
                     id="logoutBtn"
-                    class="btn danger-btn"
+                    class="logout-button"
+                    type="button"
                 >
                     Logout
                 </button>
@@ -187,306 +235,229 @@
         </header>
 
 
-        <!-- MAIN LAYOUT -->
+        <!-- NAVIGATION -->
 
-        <div class="layout">
+        <nav class="navigation">
 
-            <!-- SIDEBAR -->
+            <button
+                class="menu-btn active"
+                data-page="dashboardPage"
+                type="button"
+            >
+                Dashboard
+            </button>
 
-            <aside class="sidebar">
+            <button
+                class="menu-btn"
+                data-page="donationsPage"
+                type="button"
+            >
+                Donations
+            </button>
 
-                <button
-                    class="menu-btn active"
-                    data-page="dashboardPage"
-                >
+            <button
+                class="menu-btn"
+                data-page="expenditurePage"
+                type="button"
+            >
+                Expenditures
+            </button>
+
+            <button
+                class="menu-btn"
+                data-page="requestsPage"
+                type="button"
+            >
+                Recipient Requests
+            </button>
+
+            <button
+                class="menu-btn"
+                data-page="contactsPage"
+                type="button"
+            >
+                Contacts
+            </button>
+
+            <button
+                class="menu-btn"
+                data-page="usersPage"
+                type="button"
+            >
+                Users
+            </button>
+
+        </nav>
+
+
+        <main class="main-content">
+
+
+            <!-- =========================
+                 DASHBOARD
+            ========================== -->
+
+            <section
+                id="dashboardPage"
+                class="page"
+            >
+
+                <h2>
                     Dashboard
-                </button>
+                </h2>
 
-                <button
-                    class="menu-btn"
-                    data-page="donationsPage"
-                >
-                    Donations
-                </button>
-
-                <button
-                    class="menu-btn"
-                    data-page="expenditurePage"
-                >
-                    Expenditures
-                </button>
-
-                <button
-                    class="menu-btn"
-                    data-page="requestsPage"
-                >
-                    Recipient Requests
-                </button>
-
-                <button
-                    class="menu-btn"
-                    data-page="contactsPage"
-                >
-                    Contacts
-                </button>
-
-                <button
-                    id="usersMenu"
-                    class="menu-btn"
-                    data-page="usersPage"
-                >
-                    Users
-                </button>
-
-            </aside>
+                <p id="permissionInfo">
+                    Loading permissions...
+                </p>
 
 
-            <!-- CONTENT -->
+                <div class="dashboard-grid">
 
-            <main class="main-content">
+                    <div class="dashboard-card">
+                        <h3>
+                            Total Donations
+                        </h3>
 
-
-                <!-- ==============================
-                     DASHBOARD
-                =============================== -->
-
-                <div
-                    id="dashboardPage"
-                    class="page"
-                >
-
-                    <div class="page-title">
-                        <h1>Dashboard</h1>
-
-                        <p>
-                            Welcome to MUST Charity Management System
+                        <p id="totalDonation">
+                            0
                         </p>
                     </div>
 
 
-                    <div class="statistics">
+                    <div class="dashboard-card">
+                        <h3>
+                            Total Expenditures
+                        </h3>
 
-                        <div class="stat-card">
-
-                            <div>
-                                <span>Total Donations</span>
-
-                                <h2 id="totalDonation">
-                                    TZS 0.00
-                                </h2>
-                            </div>
-
-                            <div class="stat-icon">
-                                💰
-                            </div>
-
-                        </div>
-
-
-                        <div class="stat-card">
-
-                            <div>
-                                <span>Total Expenditure</span>
-
-                                <h2 id="totalExpenditure">
-                                    TZS 0.00
-                                </h2>
-                            </div>
-
-                            <div class="stat-icon">
-                                💸
-                            </div>
-
-                        </div>
-
-
-                        <div class="stat-card">
-
-                            <div>
-                                <span>Available Balance</span>
-
-                                <h2 id="availableBalance">
-                                    TZS 0.00
-                                </h2>
-                            </div>
-
-                            <div class="stat-icon">
-                                🏦
-                            </div>
-
-                        </div>
-
-
-                        <div class="stat-card">
-
-                            <div>
-                                <span>Pending Requests</span>
-
-                                <h2 id="pendingRequests">
-                                    0
-                                </h2>
-                            </div>
-
-                            <div class="stat-icon">
-                                📋
-                            </div>
-
-                        </div>
-
+                        <p id="totalExpenditure">
+                            0
+                        </p>
                     </div>
 
 
-                    <div class="dashboard-panels">
+                    <div class="dashboard-card">
+                        <h3>
+                            Available Balance
+                        </h3>
 
-                        <div class="panel">
-
-                            <h3>
-                                System Information
-                            </h3>
-
-                            <p>
-                                This system manages charity donations,
-                                expenditures, recipient requests,
-                                communication and users.
-                            </p>
-
-                            <p>
-                                The system supports five user types:
-                            </p>
-
-                            <ul>
-
-                                <li>Admin</li>
-                                <li>Accountant</li>
-                                <li>University Supervisor</li>
-                                <li>Donor</li>
-                                <li>Recipient</li>
-
-                            </ul>
-
-                        </div>
+                        <p id="availableBalance">
+                            0
+                        </p>
+                    </div>
 
 
-                        <div class="panel">
+                    <div class="dashboard-card">
+                        <h3>
+                            Pending Requests
+                        </h3>
 
-                            <h3>
-                                User Permissions
-                            </h3>
-
-                            <div id="permissionInfo">
-                            </div>
-
-                        </div>
-
+                        <p id="pendingRequests">
+                            0
+                        </p>
                     </div>
 
                 </div>
 
+            </section>
 
-                <!-- ==============================
-                     DONATIONS
-                =============================== -->
+
+            <!-- =========================
+                 DONATIONS
+            ========================== -->
+
+            <section
+                id="donationsPage"
+                class="page hidden"
+            >
+
+                <div class="page-header">
+
+                    <h2>
+                        Donations
+                    </h2>
+
+                    <button
+                        id="addDonationBtn"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Add Donation
+                    </button>
+
+                </div>
+
 
                 <div
-                    id="donationsPage"
-                    class="page hidden"
+                    id="donationFormContainer"
+                    class="form-container hidden"
                 >
 
-                    <div class="page-header">
+                    <h3 id="donationFormTitle">
+                        Add Donation
+                    </h3>
 
-                        <div>
-                            <h1>Donation Management</h1>
+                    <form id="donationForm">
 
-                            <p>
-                                Donation records and total donations
-                            </p>
-                        </div>
-
-                        <div class="button-group">
-
-                            <button
-                                id="addDonationBtn"
-                                class="btn primary-btn"
-                            >
-                                + Add Donation
-                            </button>
-
-                            <button
-                                class="btn secondary-btn"
-                                onclick="exportTableToExcel('donationTable','donations')"
-                            >
-                                Excel
-                            </button>
-
-                            <button
-                                class="btn secondary-btn"
-                                onclick="exportTableToPDF('donationTable','Donation List')"
-                            >
-                                PDF
-                            </button>
-
-                        </div>
-
-                    </div>
+                        <input
+                            type="hidden"
+                            id="donationId"
+                        >
 
 
-                    <div
-                        id="donationFormContainer"
-                        class="form-container hidden"
-                    >
+                        <div id="donorFieldGroup">
 
-                        <form id="donationForm">
+                            <label for="donorName">
+                                Donor
+                            </label>
 
                             <input
-                                type="hidden"
-                                id="donationId"
+                                type="text"
+                                id="donorName"
+                                placeholder="Donor ID, email or name"
                             >
 
-                            <h3 id="donationFormTitle">
-                                Add Donation
-                            </h3>
-
-                            <div class="form-grid">
-
-                                <div class="form-group">
-                                    <label>Donor Name</label>
-
-                                    <input
-                                        type="text"
-                                        id="donorName"
-                                        required
-                                    >
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Donation Amount (TZS)</label>
-
-                                    <input
-                                        type="number"
-                                        id="donationAmount"
-                                        min="1"
-                                        required
-                                    >
-                                </div>
-
-                            </div>
+                        </div>
 
 
-                            <div class="form-group">
+                        <label for="donationAmount">
+                            Amount
+                        </label>
 
-                                <label>Purpose</label>
+                        <input
+                            type="number"
+                            id="donationAmount"
+                            min="0.01"
+                            step="0.01"
+                            required
+                        >
 
-                                <textarea
-                                    id="donationPurpose"
-                                    required
-                                ></textarea>
 
-                            </div>
+                        <label for="donationPurpose">
+                            Description
+                        </label>
 
+                        <textarea
+                            id="donationPurpose"
+                            rows="4"
+                            placeholder="Donation description"
+                        ></textarea>
+
+
+                        <label for="donationDate">
+                            Donation Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="donationDate"
+                        >
+
+
+                        <div class="form-buttons">
 
                             <button
                                 type="submit"
-                                class="btn primary-btn"
+                                class="primary-button"
                             >
                                 Save Donation
                             </button>
@@ -494,164 +465,140 @@
                             <button
                                 type="button"
                                 id="cancelDonation"
-                                class="btn secondary-btn"
+                                class="secondary-button"
                             >
                                 Cancel
                             </button>
 
-                        </form>
-
-                    </div>
-
-
-                    <div class="table-card">
-
-                        <div class="table-wrapper">
-
-                            <table id="donationTable">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>ID</th>
-
-                                        <th>Donor</th>
-
-                                        <th>Amount</th>
-
-                                        <th>Purpose</th>
-
-                                        <th>Date</th>
-
-                                        <th>Actions</th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody id="donationTableBody">
-                                </tbody>
-
-                            </table>
-
                         </div>
 
-                    </div>
+                    </form>
 
                 </div>
 
 
-                <!-- ==============================
-                     EXPENDITURE
-                =============================== -->
+                <div class="table-container">
+
+                    <table id="donationTable">
+
+                        <thead>
+
+                            <tr>
+                                <th>ID</th>
+                                <th>Donor</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="donationTableBody">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 EXPENDITURES
+            ========================== -->
+
+            <section
+                id="expenditurePage"
+                class="page hidden"
+            >
+
+                <div class="page-header">
+
+                    <h2>
+                        Expenditures
+                    </h2>
+
+                    <button
+                        id="addExpenditureBtn"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Add Expenditure
+                    </button>
+
+                </div>
+
 
                 <div
-                    id="expenditurePage"
-                    class="page hidden"
+                    id="expenditureFormContainer"
+                    class="form-container hidden"
                 >
 
-                    <div class="page-header">
+                    <h3 id="expenditureFormTitle">
+                        Add Expenditure
+                    </h3>
 
-                        <div>
-                            <h1>Expenditure Management</h1>
+                    <form id="expenditureForm">
 
-                            <p>
-                                Record and manage charity expenditures
-                            </p>
-                        </div>
-
-                        <div class="button-group">
-
-                            <button
-                                id="addExpenditureBtn"
-                                class="btn primary-btn"
-                            >
-                                + Add Expenditure
-                            </button>
-
-                            <button
-                                class="btn secondary-btn"
-                                onclick="exportTableToExcel('expenditureTable','expenditures')"
-                            >
-                                Excel
-                            </button>
-
-                            <button
-                                class="btn secondary-btn"
-                                onclick="exportTableToPDF('expenditureTable','Expenditure List')"
-                            >
-                                PDF
-                            </button>
-
-                        </div>
-
-                    </div>
+                        <input
+                            type="hidden"
+                            id="expenditureId"
+                        >
 
 
-                    <div
-                        id="expenditureFormContainer"
-                        class="form-container hidden"
-                    >
+                        <label for="expenditureTitle">
+                            Title
+                        </label>
 
-                        <form id="expenditureForm">
-
-                            <input
-                                type="hidden"
-                                id="expenditureId"
-                            >
-
-                            <h3 id="expenditureFormTitle">
-                                Add Expenditure
-                            </h3>
+                        <input
+                            type="text"
+                            id="expenditureTitle"
+                            placeholder="Expenditure title"
+                            required
+                        >
 
 
-                            <div class="form-grid">
+                        <label for="expenditureAmount">
+                            Amount
+                        </label>
 
-                                <div class="form-group">
-
-                                    <label>Title</label>
-
-                                    <input
-                                        type="text"
-                                        id="expenditureTitle"
-                                        required
-                                    >
-
-                                </div>
+                        <input
+                            type="number"
+                            id="expenditureAmount"
+                            min="0.01"
+                            step="0.01"
+                            required
+                        >
 
 
-                                <div class="form-group">
+                        <label for="expenditureDescription">
+                            Description
+                        </label>
 
-                                    <label>Amount (TZS)</label>
-
-                                    <input
-                                        type="number"
-                                        id="expenditureAmount"
-                                        min="1"
-                                        required
-                                    >
-
-                                </div>
-
-                            </div>
+                        <textarea
+                            id="expenditureDescription"
+                            rows="4"
+                            placeholder="Expenditure description"
+                            required
+                        ></textarea>
 
 
-                            <div class="form-group">
+                        <label for="expenditureDate">
+                            Expenditure Date
+                        </label>
 
-                                <label>Description</label>
+                        <input
+                            type="date"
+                            id="expenditureDate"
+                        >
 
-                                <textarea
-                                    id="expenditureDescription"
-                                    required
-                                ></textarea>
 
-                            </div>
-
+                        <div class="form-buttons">
 
                             <button
                                 type="submit"
-                                class="btn primary-btn"
+                                class="primary-button"
                             >
                                 Save Expenditure
                             </button>
@@ -659,313 +606,254 @@
                             <button
                                 type="button"
                                 id="cancelExpenditure"
-                                class="btn secondary-btn"
+                                class="secondary-button"
                             >
                                 Cancel
                             </button>
 
-                        </form>
-
-                    </div>
-
-
-                    <div class="table-card">
-
-                        <div class="table-wrapper">
-
-                            <table id="expenditureTable">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>ID</th>
-
-                                        <th>Title</th>
-
-                                        <th>Description</th>
-
-                                        <th>Amount</th>
-
-                                        <th>Date</th>
-
-                                        <th>Actions</th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody id="expenditureTableBody">
-                                </tbody>
-
-                            </table>
-
                         </div>
 
-                    </div>
+                    </form>
 
                 </div>
 
 
-                <!-- ==============================
-                     RECIPIENT REQUESTS
-                =============================== -->
+                <div class="table-container">
+
+                    <table id="expenditureTable">
+
+                        <thead>
+
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Amount</th>
+                                <th>Description</th>
+                                <th>Date</th>
+                                <th>Created By</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="expenditureTableBody">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 RECIPIENT REQUESTS
+            ========================== -->
+
+            <section
+                id="requestsPage"
+                class="page hidden"
+            >
+
+                <div class="page-header">
+
+                    <h2>
+                        Recipient Requests
+                    </h2>
+
+                    <button
+                        id="addRequestBtn"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Submit Request
+                    </button>
+
+                </div>
+
 
                 <div
-                    id="requestsPage"
-                    class="page hidden"
+                    id="requestFormContainer"
+                    class="form-container hidden"
                 >
 
-                    <div class="page-header">
+                    <h3>
+                        Recipient Request
+                    </h3>
 
-                        <div>
-                            <h1>Recipient Requests</h1>
+                    <form id="requestForm">
 
-                            <p>
-                                Request and review charity assistance
-                            </p>
-
-                        </div>
-
-                        <div class="button-group">
-
-                            <button
-                                id="addRequestBtn"
-                                class="btn primary-btn"
-                            >
-                                + New Request
-                            </button>
-
-                            <button
-                                class="btn secondary-btn"
-                                onclick="exportTableToExcel('requestTable','recipient-requests')"
-                            >
-                                Excel
-                            </button>
-
-                            <button
-                                class="btn secondary-btn"
-                                onclick="exportTableToPDF('requestTable','Recipient Requests')"
-                            >
-                                PDF
-                            </button>
-
-                        </div>
-
-                    </div>
+                        <input
+                            type="hidden"
+                            id="requestId"
+                        >
 
 
-                    <div
-                        id="requestFormContainer"
-                        class="form-container hidden"
-                    >
+                        <label for="requestRecipient">
+                            Request Title
+                        </label>
 
-                        <form id="requestForm">
-
-                            <input
-                                type="hidden"
-                                id="requestId"
-                            >
-
-                            <h3>
-                                Charity Assistance Request
-                            </h3>
+                        <input
+                            type="text"
+                            id="requestRecipient"
+                            placeholder="Enter request title"
+                            required
+                        >
 
 
-                            <div class="form-group">
+                        <label for="requestAmount">
+                            Amount Requested
+                        </label>
 
-                                <label>Recipient Name</label>
-
-                                <input
-                                    type="text"
-                                    id="requestRecipient"
-                                    required
-                                >
-
-                            </div>
-
-
-                            <div class="form-group">
-
-                                <label>Amount Requested (TZS)</label>
-
-                                <input
-                                    type="number"
-                                    id="requestAmount"
-                                    min="1"
-                                    required
-                                >
-
-                            </div>
+                        <input
+                            type="number"
+                            id="requestAmount"
+                            min="0.01"
+                            step="0.01"
+                            required
+                        >
 
 
-                            <div class="form-group">
+                        <label for="requestReason">
+                            Reason / Description
+                        </label>
 
-                                <label>Reason</label>
+                        <textarea
+                            id="requestReason"
+                            rows="4"
+                            placeholder="Explain the request"
+                        ></textarea>
 
-                                <textarea
-                                    id="requestReason"
-                                    required
-                                ></textarea>
 
-                            </div>
-
+                        <div class="form-buttons">
 
                             <button
                                 type="submit"
-                                class="btn primary-btn"
+                                class="primary-button"
                             >
-                                Submit Request
+                                Save Request
                             </button>
 
                             <button
                                 type="button"
                                 id="cancelRequest"
-                                class="btn secondary-btn"
+                                class="secondary-button"
                             >
                                 Cancel
                             </button>
 
-                        </form>
-
-                    </div>
-
-
-                    <div class="table-card">
-
-                        <div class="table-wrapper">
-
-                            <table id="requestTable">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>ID</th>
-
-                                        <th>Recipient</th>
-
-                                        <th>Amount</th>
-
-                                        <th>Reason</th>
-
-                                        <th>Status</th>
-
-                                        <th>Result</th>
-
-                                        <th>Date</th>
-
-                                        <th>Actions</th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody id="requestTableBody">
-                                </tbody>
-
-                            </table>
-
                         </div>
 
-                    </div>
+                    </form>
 
                 </div>
 
 
-                <!-- ==============================
-                     CONTACTS
-                =============================== -->
+                <div class="table-container">
+
+                    <table id="requestTable">
+
+                        <thead>
+
+                            <tr>
+                                <th>ID</th>
+                                <th>Recipient</th>
+                                <th>Title</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="requestTableBody">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 CONTACTS
+            ========================== -->
+
+            <section
+                id="contactsPage"
+                class="page hidden"
+            >
+
+                <div class="page-header">
+
+                    <h2>
+                        Contacts & Messages
+                    </h2>
+
+                    <button
+                        id="addContactBtn"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Send Message
+                    </button>
+
+                </div>
+
 
                 <div
-                    id="contactsPage"
-                    class="page hidden"
+                    id="contactFormContainer"
+                    class="form-container hidden"
                 >
 
-                    <div class="page-header">
+                    <h3>
+                        Send Message
+                    </h3>
 
-                        <div>
-                            <h1>Communication</h1>
+                    <form id="contactForm">
 
-                            <p>
-                                Contact Admin or Accountant
-                            </p>
+                        <label for="contactRecipient">
+                            Recipient
+                        </label>
 
-                        </div>
-
-                        <button
-                            id="addContactBtn"
-                            class="btn primary-btn"
+                        <input
+                            type="text"
+                            id="contactRecipient"
+                            placeholder="Recipient name or email"
                         >
-                            + New Message
-                        </button>
-
-                    </div>
 
 
-                    <div
-                        id="contactFormContainer"
-                        class="form-container hidden"
-                    >
+                        <label for="contactSubject">
+                            Subject
+                        </label>
 
-                        <form id="contactForm">
-
-                            <div class="form-group">
-
-                                <label>
-                                    Send To
-                                </label>
-
-                                <select
-                                    id="contactRecipient"
-                                    required
-                                >
-
-                                    <option value="Admin">
-                                        Admin
-                                    </option>
-
-                                    <option value="Accountant">
-                                        Accountant
-                                    </option>
-
-                                </select>
-
-                            </div>
+                        <input
+                            type="text"
+                            id="contactSubject"
+                            placeholder="Message subject"
+                            required
+                        >
 
 
-                            <div class="form-group">
+                        <label for="contactMessage">
+                            Message
+                        </label>
 
-                                <label>
-                                    Subject
-                                </label>
-
-                                <input
-                                    type="text"
-                                    id="contactSubject"
-                                    required
-                                >
-
-                            </div>
+                        <textarea
+                            id="contactMessage"
+                            rows="5"
+                            placeholder="Write your message"
+                            required
+                        ></textarea>
 
 
-                            <div class="form-group">
-
-                                <label>
-                                    Message
-                                </label>
-
-                                <textarea
-                                    id="contactMessage"
-                                    required
-                                ></textarea>
-
-                            </div>
-
+                        <div class="form-buttons">
 
                             <button
                                 type="submit"
-                                class="btn primary-btn"
+                                class="primary-button"
                             >
                                 Send Message
                             </button>
@@ -973,191 +861,164 @@
                             <button
                                 type="button"
                                 id="cancelContact"
-                                class="btn secondary-btn"
+                                class="secondary-button"
                             >
                                 Cancel
                             </button>
 
-                        </form>
-
-                    </div>
-
-
-                    <div class="table-card">
-
-                        <div class="table-wrapper">
-
-                            <table>
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>ID</th>
-
-                                        <th>From</th>
-
-                                        <th>To</th>
-
-                                        <th>Subject</th>
-
-                                        <th>Message</th>
-
-                                        <th>Reply</th>
-
-                                        <th>Date</th>
-
-                                        <th>Actions</th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody id="contactTableBody">
-                                </tbody>
-
-                            </table>
-
                         </div>
 
-                    </div>
+                    </form>
 
                 </div>
 
 
-                <!-- ==============================
-                     USERS
-                =============================== -->
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>ID</th>
+                                <th>Sender</th>
+                                <th>Subject</th>
+                                <th>Message</th>
+                                <th>Reply</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="contactTableBody">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 USERS
+            ========================== -->
+
+            <section
+                id="usersPage"
+                class="page hidden"
+            >
+
+                <div class="page-header">
+
+                    <h2>
+                        User Management
+                    </h2>
+
+                    <button
+                        id="addUserBtn"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Add User
+                    </button>
+
+                </div>
+
 
                 <div
-                    id="usersPage"
-                    class="page hidden"
+                    id="userFormContainer"
+                    class="form-container hidden"
                 >
 
-                    <div class="page-header">
+                    <h3 id="userFormTitle">
+                        Add User
+                    </h3>
 
-                        <div>
+                    <form id="userForm">
 
-                            <h1>User Management</h1>
-
-                            <p>
-                                Admin manages system users
-                            </p>
-
-                        </div>
-
-                        <button
-                            id="addUserBtn"
-                            class="btn primary-btn"
+                        <input
+                            type="hidden"
+                            id="userId"
                         >
-                            + Add User
-                        </button>
-
-                    </div>
 
 
-                    <div
-                        id="userFormContainer"
-                        class="form-container hidden"
-                    >
+                        <label for="userName">
+                            Full Name
+                        </label>
 
-                        <form id="userForm">
-
-                            <input
-                                type="hidden"
-                                id="userId"
-                            >
-
-                            <h3 id="userFormTitle">
-                                Add User
-                            </h3>
+                        <input
+                            type="text"
+                            id="userName"
+                            required
+                        >
 
 
-                            <div class="form-grid">
+                        <label for="userEmail">
+                            Email
+                        </label>
 
-                                <div class="form-group">
-
-                                    <label>
-                                        Full Name
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        id="userName"
-                                        required
-                                    >
-
-                                </div>
+                        <input
+                            type="email"
+                            id="userEmail"
+                            required
+                        >
 
 
-                                <div class="form-group">
+                        <label for="userPassword">
+                            Password
+                        </label>
 
-                                    <label>
-                                        Email
-                                    </label>
-
-                                    <input
-                                        type="email"
-                                        id="userEmail"
-                                        required
-                                    >
-
-                                </div>
+                        <input
+                            type="password"
+                            id="userPassword"
+                            minlength="6"
+                            placeholder="Required for new users"
+                        >
 
 
-                                <div class="form-group">
+                        <label for="userRole">
+                            Role
+                        </label>
 
-                                    <label>
-                                        Password
-                                    </label>
+                        <select
+                            id="userRole"
+                            required
+                        >
 
-                                    <input
-                                        type="password"
-                                        id="userPassword"
-                                        minlength="6"
-                                    >
+                            <option value="">
+                                Select role
+                            </option>
 
-                                </div>
+                            <option value="Admin">
+                                Admin
+                            </option>
+
+                            <option value="Accountant">
+                                Accountant
+                            </option>
+
+                            <option value="University Supervisor">
+                                University Supervisor
+                            </option>
+
+                            <option value="Donor">
+                                Donor
+                            </option>
+
+                            <option value="Recipient">
+                                Recipient
+                            </option>
+
+                        </select>
 
 
-                                <div class="form-group">
-
-                                    <label>
-                                        User Role
-                                    </label>
-
-                                    <select id="userRole" required>
-
-                                        <option value="admin">
-                                            Admin
-                                        </option>
-
-                                        <option value="accountant">
-                                            Accountant
-                                        </option>
-
-                                        <option value="supervisor">
-                                            University Supervisor
-                                        </option>
-
-                                        <option value="donor">
-                                            Donor
-                                        </option>
-
-                                        <option value="recipient">
-                                            Recipient
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-                            </div>
-
+                        <div class="form-buttons">
 
                             <button
                                 type="submit"
-                                class="btn primary-btn"
+                                class="primary-button"
                             >
                                 Save User
                             </button>
@@ -1165,80 +1026,77 @@
                             <button
                                 type="button"
                                 id="cancelUser"
-                                class="btn secondary-btn"
+                                class="secondary-button"
                             >
                                 Cancel
                             </button>
 
-                        </form>
-
-                    </div>
-
-
-                    <div class="table-card">
-
-                        <div class="table-wrapper">
-
-                            <table id="usersTable">
-
-                                <thead>
-
-                                    <tr>
-
-                                        <th>ID</th>
-
-                                        <th>Name</th>
-
-                                        <th>Email</th>
-
-                                        <th>Role</th>
-
-                                        <th>Actions</th>
-
-                                    </tr>
-
-                                </thead>
-
-                                <tbody id="usersTableBody">
-                                </tbody>
-
-                            </table>
-
                         </div>
 
-                    </div>
+                    </form>
 
                 </div>
 
-            </main>
 
-        </div>
+                <div class="table-container">
+
+                    <table id="usersTable">
+
+                        <thead>
+
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="usersTableBody">
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+        </main>
 
     </section>
 
 
-    <!-- TOAST MESSAGE -->
+    <!-- =========================
+         TOAST MESSAGE
+    ========================== -->
 
-    <div id="toast" class="toast">
-    </div>
-
-
-    <!-- PDF LIBRARY -->
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-    </script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js">
-    </script>
+    <div
+        id="toast"
+        class="toast"
+    ></div>
 
 
-    <!-- EXCEL LIBRARY -->
+    <!-- =========================
+         PDF / EXCEL LIBRARIES
+    ========================== -->
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-    </script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    ></script>
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"
+    ></script>
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+    ></script>
 
 
-    <!-- OUR JAVASCRIPT -->
+    <!-- MAIN JAVASCRIPT -->
 
     <script src="script.js"></script>
 
