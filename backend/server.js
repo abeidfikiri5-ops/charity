@@ -1,8 +1,8 @@
-
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const path = require("path");
 require("dotenv").config();
 
 const pool = require("./db");
@@ -13,37 +13,8 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "charity-secret-key-change-me";
-
-/* =========================
-   BASIC ROUTES
-========================= */
-
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        message: "MUST Charity & Expenditure server is working!"
-    });
-});
-
-app.get("/api/health", async (req, res) => {
-    try {
-        const result = await pool.query("SELECT NOW()");
-
-        res.json({
-            success: true,
-            message: "Server and PostgreSQL are connected!",
-            databaseTime: result.rows[0].now
-        });
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({
-            success: false,
-            message: "Database connection failed"
-        });
-    }
-});
+const JWT_SECRET =
+    process.env.JWT_SECRET || "charity-secret-key-change-me";
 
 /* =========================
    AUTHENTICATION
@@ -77,7 +48,9 @@ async function authenticate(req, res, next) {
         const decoded = jwt.verify(token, JWT_SECRET);
 
         const result = await pool.query(
-            "SELECT id, full_name, email, role, created_at FROM users WHERE id = $1",
+            `SELECT id, full_name, email, role, created_at
+             FROM users
+             WHERE id = $1`,
             [decoded.id]
         );
 
@@ -89,8 +62,11 @@ async function authenticate(req, res, next) {
         }
 
         req.user = result.rows[0];
+
         next();
     } catch (error) {
+        console.error(error);
+
         return res.status(401).json({
             success: false,
             message: "Invalid or expired token"
@@ -111,7 +87,39 @@ function allowRoles(...roles) {
     };
 }
 
-/* LOGIN */
+/* =========================
+   BASIC ROUTES
+========================= */
+
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        message: "MUST Charity & Expenditure server is working!"
+    });
+});
+
+app.get("/api/health", async (req, res) => {
+    try {
+        const result = await pool.query("SELECT NOW()");
+
+        res.json({
+            success: true,
+            message: "Server and PostgreSQL are connected!",
+            databaseTime: result.rows[0].now
+        });
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: "Database connection failed"
+        });
+    }
+});
+
+/* =========================
+   LOGIN
+========================= */
 
 app.post("/api/auth/login", async (req, res) => {
     try {
@@ -173,7 +181,9 @@ app.post("/api/auth/login", async (req, res) => {
     }
 });
 
-/* CURRENT USER */
+/* =========================
+   CURRENT USER
+========================= */
 
 app.get("/api/auth/me", authenticate, (req, res) => {
     res.json({
@@ -219,7 +229,12 @@ app.post(
     allowRoles("Admin"),
     async (req, res) => {
         try {
-            const { full_name, email, password, role } = req.body;
+            const {
+                full_name,
+                email,
+                password,
+                role
+            } = req.body;
 
             const allowedRoles = [
                 "Admin",
@@ -294,7 +309,12 @@ app.put(
         try {
             const id = Number(req.params.id);
 
-            const { full_name, email, password, role } = req.body;
+            const {
+                full_name,
+                email,
+                password,
+                role
+            } = req.body;
 
             const allowedRoles = [
                 "Admin",
@@ -555,7 +575,8 @@ app.put(
                     `UPDATE donations
                      SET amount = $1,
                          description = $2,
-                         donation_date = COALESCE($3::date, donation_date)
+                         donation_date =
+                             COALESCE($3::date, donation_date)
                      WHERE id = $4
                        AND donor_id = $5
                      RETURNING *`,
@@ -572,7 +593,8 @@ app.put(
                     `UPDATE donations
                      SET amount = $1,
                          description = $2,
-                         donation_date = COALESCE($3::date, donation_date)
+                         donation_date =
+                             COALESCE($3::date, donation_date)
                      WHERE id = $4
                      RETURNING *`,
                     [
@@ -620,13 +642,16 @@ app.delete(
             if (req.user.role === "Donor") {
                 result = await pool.query(
                     `DELETE FROM donations
-                     WHERE id = $1 AND donor_id = $2
+                     WHERE id = $1
+                       AND donor_id = $2
                      RETURNING id`,
                     [id, req.user.id]
                 );
             } else {
                 result = await pool.query(
-                    "DELETE FROM donations WHERE id = $1 RETURNING id",
+                    `DELETE FROM donations
+                     WHERE id = $1
+                     RETURNING id`,
                     [id]
                 );
             }
@@ -708,7 +733,12 @@ app.post(
             const result = await pool.query(
                 `INSERT INTO expenditures
                  (amount, description, expenditure_date, created_by)
-                 VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), $4)
+                 VALUES (
+                     $1,
+                     $2,
+                     COALESCE($3::date, CURRENT_DATE),
+                     $4
+                 )
                  RETURNING *`,
                 [
                     Number(amount),
@@ -759,7 +789,8 @@ app.put(
                 `UPDATE expenditures
                  SET amount = $1,
                      description = $2,
-                     expenditure_date = COALESCE($3::date, expenditure_date)
+                     expenditure_date =
+                         COALESCE($3::date, expenditure_date)
                  WHERE id = $4
                  RETURNING *`,
                 [
@@ -850,8 +881,10 @@ app.get("/api/requests", authenticate, async (req, res) => {
                         r.created_at,
                         r.updated_at
                  FROM recipient_requests r
-                 JOIN users u ON u.id = r.recipient_id
-                 LEFT JOIN users reviewer ON reviewer.id = r.reviewed_by
+                 JOIN users u
+                   ON u.id = r.recipient_id
+                 LEFT JOIN users reviewer
+                   ON reviewer.id = r.reviewed_by
                  WHERE r.recipient_id = $1
                  ORDER BY r.id DESC`,
                 [req.user.id]
@@ -870,8 +903,10 @@ app.get("/api/requests", authenticate, async (req, res) => {
                         r.created_at,
                         r.updated_at
                  FROM recipient_requests r
-                 JOIN users u ON u.id = r.recipient_id
-                 LEFT JOIN users reviewer ON reviewer.id = r.reviewed_by
+                 JOIN users u
+                   ON u.id = r.recipient_id
+                 LEFT JOIN users reviewer
+                   ON reviewer.id = r.reviewed_by
                  ORDER BY r.id DESC`
             );
         }
@@ -905,7 +940,8 @@ app.post(
             if (!title || !description || !amount_requested) {
                 return res.status(400).json({
                     success: false,
-                    message: "Title, description and amount are required"
+                    message:
+                        "Title, description and amount are required"
                 });
             }
 
@@ -974,7 +1010,8 @@ app.put(
             if (result.rows.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: "Request not found or cannot be updated"
+                    message:
+                        "Request not found or cannot be updated"
                 });
             }
 
@@ -1025,7 +1062,8 @@ app.delete(
             if (result.rows.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: "Request not found or cannot be deleted"
+                    message:
+                        "Request not found or cannot be deleted"
                 });
             }
 
@@ -1044,7 +1082,9 @@ app.delete(
     }
 );
 
-/* APPROVE / REJECT REQUEST */
+/* =========================
+   APPROVE / REJECT REQUEST
+========================= */
 
 app.put(
     "/api/requests/:id/status",
@@ -1064,7 +1104,8 @@ app.put(
             if (!allowedStatuses.includes(status)) {
                 return res.status(400).json({
                     success: false,
-                    message: "Status must be Approved or Rejected"
+                    message:
+                        "Status must be Approved or Rejected"
                 });
             }
 
@@ -1091,7 +1132,8 @@ app.put(
 
             res.json({
                 success: true,
-                message: `Request ${status.toLowerCase()} successfully`,
+                message:
+                    `Request ${status.toLowerCase()} successfully`,
                 request: result.rows[0]
             });
         } catch (error) {
@@ -1099,7 +1141,8 @@ app.put(
 
             res.status(500).json({
                 success: false,
-                message: "Failed to update request status"
+                message:
+                    "Failed to update request status"
             });
         }
     }
@@ -1130,8 +1173,10 @@ app.get("/api/contacts", authenticate, async (req, res) => {
                         c.created_at,
                         c.replied_at
                  FROM contacts c
-                 JOIN users u ON u.id = c.sender_id
-                 LEFT JOIN users r ON r.id = c.replied_by
+                 JOIN users u
+                   ON u.id = c.sender_id
+                 LEFT JOIN users r
+                   ON r.id = c.replied_by
                  ORDER BY c.id DESC`
             );
         } else {
@@ -1148,8 +1193,10 @@ app.get("/api/contacts", authenticate, async (req, res) => {
                         c.created_at,
                         c.replied_at
                  FROM contacts c
-                 JOIN users u ON u.id = c.sender_id
-                 LEFT JOIN users r ON r.id = c.replied_by
+                 JOIN users u
+                   ON u.id = c.sender_id
+                 LEFT JOIN users r
+                   ON r.id = c.replied_by
                  WHERE c.sender_id = $1
                  ORDER BY c.id DESC`,
                 [req.user.id]
@@ -1170,43 +1217,51 @@ app.get("/api/contacts", authenticate, async (req, res) => {
     }
 });
 
-app.post("/api/contacts", authenticate, async (req, res) => {
-    try {
-        const { subject, message } = req.body;
-
-        if (!subject || !message) {
-            return res.status(400).json({
-                success: false,
-                message: "Subject and message are required"
-            });
-        }
-
-        const result = await pool.query(
-            `INSERT INTO contacts
-             (sender_id, subject, message)
-             VALUES ($1, $2, $3)
-             RETURNING *`,
-            [
-                req.user.id,
+app.post(
+    "/api/contacts",
+    authenticate,
+    async (req, res) => {
+        try {
+            const {
                 subject,
                 message
-            ]
-        );
+            } = req.body;
 
-        res.status(201).json({
-            success: true,
-            message: "Message sent successfully",
-            contact: result.rows[0]
-        });
-    } catch (error) {
-        console.error(error);
+            if (!subject || !message) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Subject and message are required"
+                });
+            }
 
-        res.status(500).json({
-            success: false,
-            message: "Failed to send message"
-        });
+            const result = await pool.query(
+                `INSERT INTO contacts
+                 (sender_id, subject, message)
+                 VALUES ($1, $2, $3)
+                 RETURNING *`,
+                [
+                    req.user.id,
+                    subject,
+                    message
+                ]
+            );
+
+            res.status(201).json({
+                success: true,
+                message: "Message sent successfully",
+                contact: result.rows[0]
+            });
+        } catch (error) {
+            console.error(error);
+
+            res.status(500).json({
+                success: false,
+                message: "Failed to send message"
+            });
+        }
     }
-});
+);
 
 app.put(
     "/api/contacts/:id/reply",
@@ -1242,7 +1297,8 @@ app.put(
             if (result.rows.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: "Contact message not found"
+                    message:
+                        "Contact message not found"
                 });
             }
 
@@ -1266,71 +1322,127 @@ app.put(
    DASHBOARD
 ========================= */
 
-app.get("/api/dashboard", authenticate, async (req, res) => {
-    try {
-        const users = await pool.query(
-            "SELECT COUNT(*)::int AS total FROM users"
-        );
+app.get(
+    "/api/dashboard",
+    authenticate,
+    async (req, res) => {
+        try {
+            const users = await pool.query(
+                "SELECT COUNT(*)::int AS total FROM users"
+            );
 
-        const donations = await pool.query(
-            "SELECT COALESCE(SUM(amount), 0) AS total FROM donations"
-        );
+            const donations = await pool.query(
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM donations"
+            );
 
-        const expenditures = await pool.query(
-            "SELECT COALESCE(SUM(amount), 0) AS total FROM expenditures"
-        );
+            const expenditures = await pool.query(
+                "SELECT COALESCE(SUM(amount), 0) AS total FROM expenditures"
+            );
 
-        const requests = await pool.query(
-            `SELECT
-                COUNT(*)::int AS total,
-                COUNT(*) FILTER (WHERE status = 'Pending')::int AS pending,
-                COUNT(*) FILTER (WHERE status = 'Approved')::int AS approved,
-                COUNT(*) FILTER (WHERE status = 'Rejected')::int AS rejected
-             FROM recipient_requests`
-        );
+            const requests = await pool.query(
+                `SELECT
+                    COUNT(*)::int AS total,
+                    COUNT(*) FILTER
+                        (WHERE status = 'Pending')::int AS pending,
+                    COUNT(*) FILTER
+                        (WHERE status = 'Approved')::int AS approved,
+                    COUNT(*) FILTER
+                        (WHERE status = 'Rejected')::int AS rejected
+                 FROM recipient_requests`
+            );
 
-        const contacts = await pool.query(
-            `SELECT COUNT(*)::int AS total,
-                    COUNT(*) FILTER (WHERE reply IS NULL)::int AS unanswered
-             FROM contacts`
-        );
+            const contacts = await pool.query(
+                `SELECT
+                    COUNT(*)::int AS total,
+                    COUNT(*) FILTER
+                        (WHERE reply IS NULL)::int AS unanswered
+                 FROM contacts`
+            );
 
-        const totalDonations = Number(donations.rows[0].total);
-        const totalExpenditures = Number(expenditures.rows[0].total);
+            const totalDonations =
+                Number(donations.rows[0].total);
 
-        res.json({
-            success: true,
-            dashboard: {
-                total_users: users.rows[0].total,
-                total_donations: totalDonations,
-                total_expenditures: totalExpenditures,
-                balance: totalDonations - totalExpenditures,
-                total_requests: requests.rows[0].total,
-                pending_requests: requests.rows[0].pending,
-                approved_requests: requests.rows[0].approved,
-                rejected_requests: requests.rows[0].rejected,
-                total_contacts: contacts.rows[0].total,
-                unanswered_contacts: contacts.rows[0].unanswered
-            }
-        });
-    } catch (error) {
-        console.error(error);
+            const totalExpenditures =
+                Number(expenditures.rows[0].total);
 
-        res.status(500).json({
-            success: false,
-            message: "Failed to load dashboard"
-        });
+            res.json({
+                success: true,
+                dashboard: {
+                    total_users:
+                        users.rows[0].total,
+
+                    total_donations:
+                        totalDonations,
+
+                    total_expenditures:
+                        totalExpenditures,
+
+                    balance:
+                        totalDonations -
+                        totalExpenditures,
+
+                    total_requests:
+                        requests.rows[0].total,
+
+                    pending_requests:
+                        requests.rows[0].pending,
+
+                    approved_requests:
+                        requests.rows[0].approved,
+
+                    rejected_requests:
+                        requests.rows[0].rejected,
+
+                    total_contacts:
+                        contacts.rows[0].total,
+
+                    unanswered_contacts:
+                        contacts.rows[0].unanswered
+                }
+            });
+        } catch (error) {
+            console.error(error);
+
+            res.status(500).json({
+                success: false,
+                message: "Failed to load dashboard"
+            });
+        }
     }
+);
+
+/* =========================
+   SERVE FRONTEND
+========================= */
+
+app.use(
+    express.static(
+        path.join(__dirname, "frontend")
+    )
+);
+
+/* =========================
+   FRONTEND FALLBACK
+========================= */
+
+app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(
+        path.join(
+            __dirname,
+            "frontend",
+            "index.html"
+        )
+    );
 });
 
 /* =========================
-   ERROR HANDLER
+   API 404 HANDLER
 ========================= */
 
-app.use((req, res) => {
+app.use("/api", (req, res) => {
     res.status(404).json({
         success: false,
-        message: "Route not found"
+        message: "API route not found"
     });
 });
 
@@ -1338,6 +1450,12 @@ app.use((req, res) => {
    START SERVER
 ========================= */
 
-app.listen(PORT, () => {
-    console.log(`Charity server running on port ${PORT}`);
-});
+app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+        console.log(
+            `MUST Charity server running on port ${PORT}`
+        );
+    }
+);
