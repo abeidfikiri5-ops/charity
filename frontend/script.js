@@ -5,7 +5,7 @@
    Frontend JavaScript
 ========================================================= */
 
-const API = "/api";
+const API = "https://charity-9mlx.onrender.com/api";
 
 let token = localStorage.getItem("must_token") || "";
 let currentUser = null;
